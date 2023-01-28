@@ -1,0 +1,107 @@
+---
+# ------------------- Experiment Facts
+experiment_facts:
+ experiment_number: 1
+ run_number: 1
+ experiment_name: "Beta Test for Simple Fashion NeRF to synthesize novel views of virtual try-on."
+ experiment_description: "Perform simple neural radiance field, and perform super-resolution to prepare for viton-HD"
+ cuda: True
+ 
+ checkpoints:
+  load_checkpoint: False
+  save_checkpoint: True
+  NeRF:
+   checkpoint_nerf: "NeRF.pth"
+  SR:
+   checkpoint_gen: "gen.pth"
+   checkpoint_disc: "disc.pth"
+  VITON:
+   checkpoint_seg: "seg_final.pth"
+   checkpoint_gmm: "gmm_final.pth"
+   checkpoint_alias: "alias_final.pth"
+   checkpoint_model: "model.pth"
+
+
+
+# ------------------- Result Facts
+results_facts:
+ experiment_number: 1
+ run_number: 1
+ folder:
+  root_path: "Results"
+  NeRF_path: "Results/NeRF"
+  ESRGAN_path: "Results/ESRGAN"
+  VITON_path: "Resuls/VITON"
+  basedir: "./logs"
+  nerf_real_dir: "tensorboard/NERF_real"
+  nerf_model_dir: "tensorboard/NERF_model"
+ training_evaluation:
+  training_loss: ""
+  training_images: ""
+ summary:
+  weights_dir: "weights"
+  samples_dir: "samples"
+  writer_logs_dir: "log"
+
+# ------------------- Dataset Facts
+dataset_facts:
+ model: "eric"
+ dataset_type: "blender"
+ image:
+  channels: 3
+  lr_shape: (3,100,100)
+  hr_shape: (3,1024,768)
+ folder_path: "Dataset"
+ script_path: "dataset.py"
+ transforms:
+  mean:
+   - 0
+   - 0
+   - 0
+  std:
+   - 1
+   - 1
+   - 1
+
+
+# ------------------- Model Facts
+model_facts:
+ script_path:
+  NeRF: "NeRF/model.py"
+  SR: "ESRGAN/model.py"
+  VITON: "VITON/model.py"
+ in_channels: 3
+
+# ------------------- Training Facts
+training_facts:
+ script_path: "train.py"
+ batch_size: 10
+ num_workers: 1
+ NeRF:
+  epochs: 5000
+  no_batching: True
+  use_viewdirs: True
+  white_bkgd: False
+  lrate_decay: 500
+  N_samples: 64
+  N_importance: 128
+  N_rand: 1024
+  precrop_iters: 500
+  precrop_frec: 0.5
+  half_res: False
+ ESRGAN:
+  epochs: 2000
+  lambda_gp: 10
+  learning_rate: 1.0e-4
+ VITON:
+  epochs: 2000
+  display_freq: 1
+  semantic_nc: 13 # Number of parsing map classes
+  init_type: "xavier"
+  init_variance: 0.02 # Variance of the initialization distribution
+  grid_size: 5 # For GMM
+  alias_generator:
+   norm_G: "spectralaliasinstance"
+   ngf: 64 # Number of generator filters in the first conv layer
+   num_upsampling_layers: "most"
+  learning_rate: 1.0e-5
