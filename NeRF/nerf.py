@@ -1,16 +1,15 @@
 from tqdm import tqdm, trange
-from NeRF.load_blender import load_blender_data
+from load_blender import load_blender_data
 import imageio
 import time
-import NeRF.config as nerf_config
-from config import *
-from NeRF.run_nerf_helpers import *
+import config
+from run_nerf_helpers import *
 import os
-import NeRF.utils as nerf_utils
+import utils
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 np.random.seed(0)
-print(nerf_utils.DEBUG)
+print(utils.DEBUG)
 
 def create_nerf(args):
     """Instantiate NeRF's MLP model.
@@ -35,7 +34,7 @@ def create_nerf(args):
                           input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         grad_vars += list(model_fine.parameters())
 
-    network_query_fn = lambda inputs, viewdirs, network_fn : nerf_utils.run_network(inputs, viewdirs, network_fn,
+    network_query_fn = lambda inputs, viewdirs, network_fn : utils.run_network(inputs, viewdirs, network_fn,
                                                                 embed_fn=embed_fn,
                                                                 embeddirs_fn=embeddirs_fn,
                                                                 netchunk=args.netchunk)
@@ -53,7 +52,7 @@ def create_nerf(args):
     if args.ft_path is not None and args.ft_path!='None':
         ckpts = [args.ft_path]
     else:
-        ckpts = [os.path.join(paths_[1], f) for f in sorted(os.listdir(os.path.join(paths_[1]))) if 'tar' in f]
+        ckpts = [os.path.join(basedir, expname, f) for f in sorted(os.listdir(os.path.join(basedir, expname))) if 'tar' in f]
 
     print('Found ckpts', ckpts)
     if len(ckpts) > 0 and not args.no_reload:
@@ -97,7 +96,7 @@ def create_nerf(args):
 
 
 def train():
-    parser = nerf_config.config_parser()
+    parser = config.config_parser()
     args = parser.parse_args()
 
     # Load data
@@ -133,15 +132,13 @@ def train():
     basedir = args.basedir
     expname = args.expname
     os.makedirs(os.path.join(basedir, expname), exist_ok=True)
-    # f = os.path.join(basedir, expname, 'args.txt')
-    f = os.path.join(paths_[0], "args.txt")
+    f = os.path.join(basedir, expname, 'args.txt')
     with open(f, 'w') as file:
         for arg in sorted(vars(args)):
             attr = getattr(args, arg)
             file.write('{} = {}\n'.format(arg, attr))
     if args.config is not None:
-        # f = os.path.join(basedir, expname, 'config.txt')
-        f = os.path.join(paths_[0], "config.txt")
+        f = os.path.join(basedir, expname, 'config.txt')
         with open(f, 'w') as file:
             file.write(open(args.config, 'r').read())
 
@@ -175,7 +172,7 @@ def train():
             os.makedirs(testsavedir, exist_ok=True)
             print('test poses shape', render_poses.shape)
 
-            rgbs, _ = nerf_utils.render_path(render_poses, hwf, K, args.chunk, render_kwargs_test, gt_imgs=images,
+            rgbs, _ = utils.render_path(render_poses, hwf, K, args.chunk, render_kwargs_test, gt_imgs=images,
                                   savedir=testsavedir, render_factor=args.render_factor)
             print('Done rendering', testsavedir)
             imageio.mimwrite(os.path.join(testsavedir, 'video.mp4'), to8b(rgbs), fps=30, quality=8)
@@ -269,7 +266,7 @@ def train():
                 target_s = target[select_coords[:, 0], select_coords[:, 1]]  # (N_rand, 3)
 
         #####  Core optimization loop  #####
-        rgb, disp, acc, extras = nerf_utils.render(H, W, K, chunk=args.chunk, rays=batch_rays,
+        rgb, disp, acc, extras = utils.render(H, W, K, chunk=args.chunk, rays=batch_rays,
                                         verbose=i < 10, retraw=True,
                                         **render_kwargs_train)
 
@@ -298,8 +295,7 @@ def train():
 
         # Rest is logging
         if i % args.i_weights == 0:
-            # path = os.path.join(basedir, expname, '{:06d}.tar'.format(i))
-            path = os.path.join(paths_[1], '{:06d}.tar'.format(i))
+            path = os.path.join(basedir, expname, '{:06d}.tar'.format(i))
             torch.save({
                 'global_step': global_step,
                 'network_fn_state_dict': render_kwargs_train['network_fn'].state_dict(),
@@ -311,19 +307,18 @@ def train():
         if i % args.i_video == 0 and i > 0:
             # Turn on testing mode
             with torch.no_grad():
-                rgbs, disps = nerf_utils.render_path(render_poses, hwf, K, args.chunk, render_kwargs_test)
+                rgbs, disps = utils.render_path(render_poses, hwf, K, args.chunk, render_kwargs_test)
             print('Done, saving', rgbs.shape, disps.shape)
             moviebase = os.path.join(basedir, expname, '{}_spiral_{:06d}_'.format(expname, i))
             imageio.mimwrite(moviebase + 'rgb.mp4', to8b(rgbs), fps=30, quality=8)
             imageio.mimwrite(moviebase + 'disp.mp4', to8b(disps / np.max(disps)), fps=30, quality=8)
 
         if i % args.i_testset == 0 and i > 0:
-            # testsavedir = os.path.join(basedir, expname, 'testset_{:06d}'.format(i))
-            testsavedir = os.path.join(paths_[0], 'testset_{:06d}'.format(i))
+            testsavedir = os.path.join(basedir, expname, 'testset_{:06d}'.format(i))
             os.makedirs(testsavedir, exist_ok=True)
             print('test poses shape', poses[i_test].shape)
             with torch.no_grad():
-                nerf_utils.render_path(torch.Tensor(poses[i_test]).to(device), hwf, K, args.chunk, render_kwargs_test,
+                utils.render_path(torch.Tensor(poses[i_test]).to(device), hwf, K, args.chunk, render_kwargs_test,
                             gt_imgs=images[i_test], savedir=testsavedir)
             print('Saved test set')
 

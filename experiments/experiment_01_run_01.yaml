@@ -2,11 +2,11 @@
 # ------------------- Experiment Facts
 experiment_facts:
  experiment_number: 1
- type: "ESRGAN" # [ESRGAN, NeRF, Viton, FashionNeRF]
+ type: "NeRF" # [ESRGAN, NeRF, Viton, FashionNeRF]
  root_path: "./"
  run_number: 1
- experiment_name: "Pre-Trained Super-Resolution"
- experiment_description: "Perform super-resolution using github user - aladdinpersson"
+ experiment_name: "Neural Radiance Field For Eric"
+ experiment_description: "Perform NeRF on Eric, eval pretrained SR for HR-VITON"
  cuda: True
 
 

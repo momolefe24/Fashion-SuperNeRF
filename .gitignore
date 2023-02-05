@@ -1,0 +1,11 @@
+Dataset/eric/hr
+Dataset/eric/lr
+**/.ipynb_checkpoints
+**/__pycache__
+*.png
+*.mp4
+*.npy
+*.npz
+*.dae
+*.pth
+*.pth.tar
