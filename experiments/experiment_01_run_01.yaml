@@ -95,11 +95,11 @@ training_facts:
  ESRGAN:
   epochs: 2000
   filters: 64
-  num_res_blocks: 16
+  num_res_blocks: 8
   upscale_factor: 10
   leaky_relu: 0.2
-  features: [64, 64, 128, 128, 256, 256, 512, 512, 1024, 1024]
-  adaptive_average_pool: (32, 24)
+  features: [64, 64, 128, 128, 256,256, 512, 512, 1024, 1024]
+  adaptive_average_pool: (12, 12)
   initialized_weight_scale: 0.1
   residual_in_residual_dense_block: 0.2
   lambda_gp: 10

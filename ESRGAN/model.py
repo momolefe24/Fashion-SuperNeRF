@@ -118,7 +118,7 @@ class Discriminator(nn.Module):
         self.classifier = nn.Sequential(
             nn.AdaptiveAvgPool2d(eval(esrgan_facts['adaptive_average_pool'])),
             nn.Flatten(),
-            nn.Linear(1024 * 32 * 24, 1024),
+            nn.Linear(1024 * 12 * 12, 1024),
             nn.LeakyReLU(esrgan_facts['leaky_relu'], inplace=True),
             nn.Linear(1024, 1),
         )

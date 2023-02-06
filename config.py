@@ -19,7 +19,7 @@ stream=sys.stdout,
 
 paths_ = []
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = "cpu"
+device = "cuda"
 def gradient_penalty(critic, real, fake, device):
     BATCH_SIZE, C, H, W = real.shape
     alpha = torch.rand((BATCH_SIZE, 1, 1, 1)).repeat(1, C, H, W).to(device)
