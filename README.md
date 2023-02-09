@@ -1,78 +1,96 @@
-[![Build Status](https://github.com/IBM/LNN/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/IBM/LNN/actions/workflows/build.yml?query=branch%3Amaster)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blueviolet)](https://github.com/IBM/LNN/blob/master/LICENSE)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5926/badge)](https://bestpractices.coreinfrastructure.org/projects/5926)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+# Fashion Neural Super-Resolution Radiance Field for Virtual Try-On 
+Fashion-NeRF attempts to reconstruct virtual try-on with a novel view using neural radiance field to emulate a smart mirror. The paper's contributions are 
 
-# Logical Neural Networks
-LNNs are a novel `Neuro = Symbolic` framework designed to seamlessly provide key
-properties of both neural nets (learning) and symbolic logic (knowledge and reasoning).
+- Novel model to synthesize novel virtual try-on views
+- Using super-resolution as a preprocessing step to 
+  - Speed up process of synthesizing a novel view using a neural radiance field by decreasing the amount of rays marched through scene
+  - Prepare outputs of a novel view to synthesize clothing
+- Novel dataset to accomplish the task of synthesizing novel fashion views 
 
-- Every neuron has a meaning as a component of a formula in a weighted
-  real-valued logic, yielding a highly interpretable disentangled representation.
-- Inference is omnidirectional rather than focused on predefined target
-  variables, and corresponds to logical reasoning, including classical
-  first-order logic theorem proving as a special case.
-- The model is end-to-end differentiable, and learning minimizes a novel loss
-  function capturing logical contradiction, yielding resilience to inconsistent
-  knowledge.
-- It also enables the open-world assumption by maintaining bounds on truth values
-  which can have probabilistic semantics, yielding resilience to incomplete
-  knowledge.
+## Table of Contents
+## Contents
+- [Tasks]()
+  - [Neural Radiance Fields]()
+  - [Super-Resolution]()
+  - [Virtual Try-On Network]()
+- [Methodology]()
+  - [Super-Resolution]()
+    - [Pretrained SRCNN]()
+    - [Pretrained SRGAN]()
+    - [Pretrained ESRGAN]()
+  - [Neural Radiance Fields]()
+    - [Simple NeRF]()
+  - [One-Stage Network]()
+  - [Two-Stage Network]()
+- [Progress]()
+- [Contributions]()
+- [Results]()
+  
+## Tasks 
+### Neural Radiance Field
+Neural radiance field synthesize novel views of an object by encoding the geometry and pose of an object. It marches rays through an image plane and predicts the pixels in the world coordinate system. Given the ground truth, the network is trained through a photometric loss to train the network to predict the color and density of a ray.
+### Super-Resolution
+Image super-resolution describes the task of enhancing the spatial dimensions of an image while maintaining the perceptual quality.
+In this paper, super-resolution serves as a preprocessing task for the virtual try-on network such that it prepares the output of the NeRF to fit as the input of the virtual try-on network
 
-## Quickstart
-To install the LNN:
-1. Install [GraphViz](https://www.graphviz.org/download/) and gmp (libgmp3-dev)
-      <details>
-      <summary>Tips for installing Graphviz</summary>
-      <div>
-      If you experience a "graphviz/cgraph.h" file not found error, try the following:
-      
-      ```bash
-      # Using Conda
-      conda install -c anaconda graphviz
-      ```
-      Alternatively you can install the OS specific versions as follows:
-      ```bash
-      # Ubuntu and Debian
-      sudo apt-get install graphviz graphviz-dev
-      ```
-      ```bash
-      # MacOS
-      brew install graphviz
-      ```
-      ```bash
-      # Windows
-      sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
-      ```
-      </div></details>
 
-      <details>
-      <summary>Tips for installing gmp</summary>
-      <div>
+### Virtual Try-On Network
 
-      If you experience a "gmp.h" file not found error, try the following:
-      ```bash
-      # MacOS
-      brew install gmp
-      env "CFLAGS=-I/usr/local/include -L/usr/local/lib" pip install pycddlib
-      ```
-      ```bash
-      # Windows
-      sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
-      sudo -H apt-get install libgmp-dev python3-dev
-      ```
-      </div></details>
+## Methodology
+Different approaches of solving the problem 
+### Super-Resolution
 
-2. Make sure that the python version you use in line with our [setup](https://github.com/IBM/LNN/blob/master/setup.py) file, using a fresh environment is always a good idea:
-    ```commandline
-    conda create -n lnn python=3.9 -y
-    conda activate lnn
-    ```
-3. Install the LNN as a library:
-    ```commandline
-    pip install git+https://github.com/IBM/LNN.git
-    ```
+```bash
+python3 sr.py -f experiment/experiment_01_run_01
+```
+#### Pretrained SRCNN
 
+> **branch:** <a href="#">pretrain_srcnn</a>
+ 
+**Goal:** 
+
+#### Pretrained SRGAN
+> **branch:** <a href="#">pretrain_srgan</a>
+ 
+**Goal:** 
+#### Pretrained ESRGAN
+> **branch:** <a href="#">pretrain_sr</a>
+
+
+#### Pretrained ESRGAN With Gradient Accumulation
+> **branch:** <a href="#">pretrain_sr_grad_acc</a>
+
+#### Pretrained ESRGAN With Bicubic Downsampling
+> **branch:** <a href="#">pretrain_sr_bicubic</a>
+
+
+**Goal:** Decrease number of convolutions by replacing them with bicubic downsampling
+### Neural Radiance Fields
+#### NeRF
+> **branch:** <a href="#">nerf_kwea123</a>
+#### Simple NeRF
+> **branch:** <a href="#">simple_nerf</a>
+#### Neural Radiance Field: Pytorch3D
+> **branch:** <a href="#">simple_nerf_pytorch</a>
+#### Neural Radiance Field: Pretrained Super-Resolution
+> **branch:** <a href="#">nerf_pretrain_sr</a>
+#### NerF++
+> **branch:** <a href="#">nerf++</a>
+#### Plenoxels: Radiance Fields Without Neural Networks
+> **branch:** <a href="#">plenoxels</a>
+
+
+
+
+### One-Stage Network:
+#### Neural Radiance Super-Resolution Field
+> **branch:** <a href="#">ne-surf</a>
+**Goal:** 
+
+### Two-Stage Network:
+#### Neural Super-Resolution Field
+> **branch:** <a href="#">ne-surf-two-stage</a>
+**Goal:** 
 ## Contribution
 Contributions to the LNN codebase are welcome!
 
