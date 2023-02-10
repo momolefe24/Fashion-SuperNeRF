@@ -1,0 +1,115 @@
+checkpoint_facts:
+  ESRGAN:
+    checkpoint_disc: esrgan_disc.pth
+    checkpoint_gen: esrgan_gen.pth
+  NeRF:
+    checkpoint_nerf: NeRF.pth
+  VITON:
+    checkpoint_alias: alias_final.pth
+    checkpoint_gmm: gmm_final.pth
+    checkpoint_model: viton.pth
+    checkpoint_seg: seg_final.pth
+  load_checkpoint: false
+  root_path: Checkpoints
+  save_checkpoint: true
+dataset_facts:
+  dataset_type: blender
+  image:
+    channels: 3
+    hr_shape: (3,1024,768)
+    lr_shape: (3,100,100)
+  model: eric
+  root_path: Dataset
+  script_path: dataset.py
+  transforms:
+    mean:
+    - 0.485
+    - 0.456
+    - 0.406
+    std:
+    - 0.229
+    - 0.224
+    - 0.225
+experiment_facts:
+  cuda: true
+  experiment_description: Perform super-resolution using github user - aladdinpersson
+  experiment_name: Pre-Trained Super-Resolution
+  experiment_number: 1
+  root_path: ./
+  run_number: 1
+  type: ESRGAN
+model_facts:
+  in_channels: 3
+  script_path:
+    NeRF: NeRF/model.py
+    SR: ESRGAN/model.py
+    VITON: VITON/model.py
+results_facts:
+  basedir: ./logs
+  experiment_number: 1
+  root_path: Results
+  run_number: 1
+  training_evaluation:
+    training_images: ''
+    training_loss: ''
+summary_facts:
+  ESRGAN:
+    ground_truth: ground_truth
+    sr: sr
+  root_path: Summary
+training_facts:
+  ESRGAN:
+    adaptive_average_pool: (32, 24)
+    beta1: 0.9
+    beta2: 0.999
+    decay_epoch: 100
+    epochs: 2000
+    features:
+    - 64
+    - 64
+    - 128
+    - 128
+    - 256
+    - 256
+    - 512
+    - 512
+    - 1024
+    - 1024
+    filters: 64
+    initialized_weight_scale: 0.1
+    interpolation_mode: nearest
+    lambda_adv: 5e-3
+    lambda_gp: 10
+    lambda_pixel: 1e-2
+    leaky_relu: 0.2
+    learning_rate: 0.0002
+    num_res_blocks: 16
+    residual_in_residual_dense_block: 0.2
+    upscale_factor: 10
+  NeRF:
+    N_importance: 128
+    N_rand: 1024
+    N_samples: 64
+    epochs: 5000
+    half_res: false
+    lrate_decay: 500
+    no_batching: true
+    precrop_frec: 0.5
+    precrop_iters: 500
+    use_viewdirs: true
+    white_bkgd: false
+  VITON:
+    alias_generator:
+      ngf: 64
+      norm_G: spectralaliasinstance
+      num_upsampling_layers: most
+    display_freq: 1
+    epochs: 2000
+    grid_size: 5
+    init_type: xavier
+    init_variance: 0.02
+    learning_rate: 1.0e-05
+    semantic_nc: 13
+  batch_size: 1
+  num_workers: 1
+  script_path: train.py

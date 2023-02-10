@@ -13,15 +13,24 @@
   - [Introduction]()
   - [Topology]()
   - [Papers]()
-- [Results]()
+- [Results](#results)
   - [Experiment 1]()
     - [Description]()
-    - [Images]()
+    - [Images](#images)
     - [Metrics & Loss Curves]()
     - [Issues & Problems]()
 - [Contribution]()
 - [Documentation]()
 - [Citation]()
+
+
+## Results
+
+
+
+### Images
+Training the SRGAN for 2000 epochs does not improve, there are some jitter issues on the images
+![Eric](https://github.com/momolefe24/Fashion-SuperNeRF/blob/pretrain_srgan/Results.png?raw=true)
 
 ## Contribution
 Contributions to the LNN codebase are welcome!
