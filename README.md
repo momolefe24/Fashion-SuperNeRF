@@ -1,11 +1,7 @@
-# Pretrained Super-Resolution Using SRGAN 
-**Goal:** Overfit a model to super-resolve 100x100 images to 1024x768
+# Neural Super Radiance Field 
+**Goal:** Neural radiance field model comprised of a super-resolution network 
 
-- Novel model to synthesize novel virtual try-on views
-- Using super-resolution as a preprocessing step to 
-  - Speed up process of synthesizing a novel view using a neural radiance field by decreasing the amount of rays marched through scene
-  - Prepare outputs of a novel view to synthesize clothing
-- Novel dataset to accomplish the task of synthesizing novel fashion views 
+
 
 ## Table of Contents
 ## Contents
@@ -23,14 +19,31 @@
 - [Documentation]()
 - [Citation]()
 
+## Methodolgy
+A neural radiance marches 
+
+### How It Works
+The Neural Super Radiance Field is one model such that we add upsampling convolutions to a NeRF model
+
+- Given an image input of a 100x100, we would like to produce a 1024x768 image
+  - The 1024x768 specification serves as an input to the Virtual Try-On Network
+- The super-resolution model attaches itself to the result of the pixel colour and density prediction
+  - i.e NeRF outputs a 100x100 and a SR generator enhances it to 1024x768
+- Fdf
 
 ## Results
+### Experiment 1 / Run 1
 
 
 
-### Images
-Training the SRGAN for 2000 epochs does not improve, there are some jitter issues on the images
-![Eric](https://github.com/momolefe24/Fashion-SuperNeRF/blob/pretrain_srgan/Results.png?raw=true)
+#### Images 
+The NeSuRF model appears to converge at the 250th epoch such that it appears to learn to super-resolve a synthesized novel view
+![convergence](https://github.com/momolefe24/Fashion-SuperNeRF/blob/nerf_sr_combined_model/Convergence.png?raw=true)
+
+However, the model seems to diverge drastically after more training. This may have been caused by the discriminator
+![divergence-1](https://github.com/momolefe24/Fashion-SuperNeRF/blob/nerf_sr_combined_model/Divergence.png?raw=true)
+and after further training, the model completely forgets how to do its job
+![divergence-2](https://github.com/momolefe24/Fashion-SuperNeRF/blob/nerf_sr_combined_model/Beginning%20of%20divergence.png?raw=true)
 
 ## Contribution
 Contributions to the LNN codebase are welcome!
