@@ -1,5 +1,5 @@
-# Fashion Neural Super-Resolution Radiance Field for Virtual Try-On 
-Fashion-NeRF attempts to reconstruct virtual try-on with a novel view using neural radiance field to emulate a smart mirror. The paper's contributions are 
+# Pretrained Super-Resolution Using SRGAN 
+**Goal:** Overfit a model to super-resolve 100x100 images to 1024x768
 
 - Novel model to synthesize novel virtual try-on views
 - Using super-resolution as a preprocessing step to 
@@ -9,88 +9,20 @@ Fashion-NeRF attempts to reconstruct virtual try-on with a novel view using neur
 
 ## Table of Contents
 ## Contents
-- [Tasks]()
-  - [Neural Radiance Fields]()
-  - [Super-Resolution]()
-  - [Virtual Try-On Network]()
 - [Methodology]()
-  - [Super-Resolution]()
-    - [Pretrained SRCNN]()
-    - [Pretrained SRGAN]()
-    - [Pretrained ESRGAN]()
-  - [Neural Radiance Fields]()
-    - [Simple NeRF]()
-  - [One-Stage Network]()
-  - [Two-Stage Network]()
-- [Progress]()
-- [Contributions]()
+  - [Introduction]()
+  - [Topology]()
+  - [Papers]()
 - [Results]()
-  
-## Tasks 
-### Neural Radiance Field
-Neural radiance field synthesize novel views of an object by encoding the geometry and pose of an object. It marches rays through an image plane and predicts the pixels in the world coordinate system. Given the ground truth, the network is trained through a photometric loss to train the network to predict the color and density of a ray.
-### Super-Resolution
-Image super-resolution describes the task of enhancing the spatial dimensions of an image while maintaining the perceptual quality.
-In this paper, super-resolution serves as a preprocessing task for the virtual try-on network such that it prepares the output of the NeRF to fit as the input of the virtual try-on network
+  - [Experiment 1]()
+    - [Description]()
+    - [Images]()
+    - [Metrics & Loss Curves]()
+    - [Issues & Problems]()
+- [Contribution]()
+- [Documentation]()
+- [Citation]()
 
-
-### Virtual Try-On Network
-
-## Methodology
-Different approaches of solving the problem 
-### Super-Resolution
-
-```bash
-python3 sr.py -f experiment/experiment_01_run_01
-```
-#### Pretrained SRCNN
-
-> **branch:** <a href="#">pretrain_srcnn</a>
- 
-**Goal:** 
-
-#### Pretrained SRGAN
-> **branch:** <a href="#">pretrain_srgan</a>
- 
-**Goal:** 
-#### Pretrained ESRGAN
-> **branch:** <a href="#">pretrain_sr</a>
-
-
-#### Pretrained ESRGAN With Gradient Accumulation
-> **branch:** <a href="#">pretrain_sr_grad_acc</a>
-
-#### Pretrained ESRGAN With Bicubic Downsampling
-> **branch:** <a href="#">pretrain_sr_bicubic</a>
-
-
-**Goal:** Decrease number of convolutions by replacing them with bicubic downsampling
-### Neural Radiance Fields
-#### NeRF
-> **branch:** <a href="#">nerf_kwea123</a>
-#### Simple NeRF
-> **branch:** <a href="#">simple_nerf</a>
-#### Neural Radiance Field: Pytorch3D
-> **branch:** <a href="#">simple_nerf_pytorch</a>
-#### Neural Radiance Field: Pretrained Super-Resolution
-> **branch:** <a href="#">nerf_pretrain_sr</a>
-#### NerF++
-> **branch:** <a href="#">nerf++</a>
-#### Plenoxels: Radiance Fields Without Neural Networks
-> **branch:** <a href="#">plenoxels</a>
-
-
-
-
-### One-Stage Network:
-#### Neural Radiance Super-Resolution Field
-> **branch:** <a href="#">ne-surf</a>
-**Goal:** 
-
-### Two-Stage Network:
-#### Neural Super-Resolution Field
-> **branch:** <a href="#">ne-surf-two-stage</a>
-**Goal:** 
 ## Contribution
 Contributions to the LNN codebase are welcome!
 

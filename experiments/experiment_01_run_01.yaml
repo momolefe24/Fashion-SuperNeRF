@@ -2,24 +2,29 @@
 # ------------------- Experiment Facts
 experiment_facts:
  experiment_number: 1
+ type: "SRGAN" # [SRGAN, ESRGAN, NeRF, Viton, FashionNeRF, ESRGAN_Pretrain]
+ root_path: "./"
  run_number: 1
- experiment_name: "Beta Test for Simple Fashion NeRF to synthesize novel views of virtual try-on."
- experiment_description: "Perform simple neural radiance field, and perform super-resolution to prepare for viton-HD"
+ experiment_name: "Neural Radiance Field For Eric"
+ experiment_description: "Perform NeRF on Eric, eval pretrained SR for HR-VITON"
  cuda: True
- 
- checkpoints:
-  load_checkpoint: False
-  save_checkpoint: True
-  NeRF:
-   checkpoint_nerf: "NeRF.pth"
-  SR:
-   checkpoint_gen: "gen.pth"
-   checkpoint_disc: "disc.pth"
-  VITON:
-   checkpoint_seg: "seg_final.pth"
-   checkpoint_gmm: "gmm_final.pth"
-   checkpoint_alias: "alias_final.pth"
-   checkpoint_model: "model.pth"
+
+
+# ------------------- Checkpoint Facts
+checkpoint_facts:
+ load_checkpoint: False
+ save_checkpoint: True
+ root_path: "Checkpoints"
+ NeRF:
+  checkpoint_nerf: "NeRF.pth"
+ ESRGAN:
+  checkpoint_gen: "esrgan_gen.pth"
+  checkpoint_disc: "esrgan_disc.pth"
+ VITON:
+  checkpoint_seg: "seg_final.pth"
+  checkpoint_gmm: "gmm_final.pth"
+  checkpoint_alias: "alias_final.pth"
+  checkpoint_model: "viton.pth"
 
 
 
@@ -27,21 +32,19 @@ experiment_facts:
 results_facts:
  experiment_number: 1
  run_number: 1
- folder:
-  root_path: "Results"
-  NeRF_path: "Results/NeRF"
-  ESRGAN_path: "Results/ESRGAN"
-  VITON_path: "Resuls/VITON"
-  basedir: "./logs"
-  nerf_real_dir: "tensorboard/NERF_real"
-  nerf_model_dir: "tensorboard/NERF_model"
+ root_path: "Results"
+ basedir: "./logs"
  training_evaluation:
   training_loss: ""
   training_images: ""
- summary:
-  weights_dir: "weights"
-  samples_dir: "samples"
-  writer_logs_dir: "log"
+
+# ------------------- Summary Facts
+summary_facts:
+  root_path: "Summary"
+  ESRGAN:
+   ground_truth: "ground_truth"
+   sr: "sr"
+
 
 # ------------------- Dataset Facts
 dataset_facts:
@@ -51,17 +54,17 @@ dataset_facts:
   channels: 3
   lr_shape: (3,100,100)
   hr_shape: (3,1024,768)
- folder_path: "Dataset"
+ root_path: "Dataset"
  script_path: "dataset.py"
  transforms:
   mean:
-   - 0
-   - 0
-   - 0
+   - 0.485
+   - 0.456
+   - 0.406
   std:
-   - 1
-   - 1
-   - 1
+   - 0.229
+   - 0.224
+   - 0.225
 
 
 # ------------------- Model Facts
@@ -75,7 +78,7 @@ model_facts:
 # ------------------- Training Facts
 training_facts:
  script_path: "train.py"
- batch_size: 10
+ batch_size: 1
  num_workers: 1
  NeRF:
   epochs: 5000
@@ -89,10 +92,29 @@ training_facts:
   precrop_iters: 500
   precrop_frec: 0.5
   half_res: False
+ SRGAN:
+  epochs: 2000
+  lr: 0.0002
+  betas: (0.5, 0.999)
+  decay_epoch: 100
  ESRGAN:
   epochs: 2000
+  filters: 64
+  num_res_blocks: 8
+  upscale_factor: 10
+  leaky_relu: 0.2
+  features: [64, 64, 128, 128, 256,256, 512, 512, 1024, 1024]
+  adaptive_average_pool: (12, 12)
+  initialized_weight_scale: 0.1
+  residual_in_residual_dense_block: 0.2
   lambda_gp: 10
-  learning_rate: 1.0e-4
+  lambda_adv: 5e-3 # adversarial loss weight"
+  lambda_pixel: 1e-2 # pixel-wise loss weight
+  interpolation_mode: "nearest"
+  learning_rate: 0.0002 # Adam
+  beta1: 0.9
+  beta2: 0.999
+  decay_epoch: 100
  VITON:
   epochs: 2000
   display_freq: 1
