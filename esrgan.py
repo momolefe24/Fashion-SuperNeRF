@@ -32,7 +32,8 @@ p_scheduler = CosineAnnealingLR(p_optimizer, esrgan_facts['p_epochs'] // 4, 1e-7
 d_scheduler = MultiStepLR(d_optimizer, list(map(int, milestones)), 0.5)         # Discriminator model scheduler during adversarial training.
 g_scheduler = MultiStepLR(g_optimizer, list(map(int, milestones)), 0.5)         # Generator model scheduler during adversarial training.
 
-
+g_scaler = torch.cuda.amp.GradScaler()
+d_scaler = torch.cuda.amp.GradScaler()
 # Loss Functions
 PSNR_CRITERION = nn.MSELoss().to(device)
 PIXEL_CRITERION = nn.L1Loss().to(device)
@@ -49,24 +50,25 @@ eric_valid_dataset.__getitem__(0)
 eric_valid_loader = DataLoader(eric_valid_dataset, training_facts['batch_size'], shuffle=True, pin_memory=True)
 
 if checkpoint_facts['ESRGAN']['load_esrresnet']:
-    checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['checkpoint_esrresnet'])
+    checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_esrresnet'])
     load_checkpoint(checkpoint_file, generator, p_optimizer, esrgan_facts['learning_rate'])
 
 if checkpoint_facts['ESRGAN']['load_esrgan']:
-    checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['checkpoint_gen'])
-    disc_checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['checkpoint_disc'])
+    checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_gen'])
+    disc_checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_disc'])
     load_checkpoint(
         checkpoint_file,
         generator,
         g_optimizer,
         esrgan_facts['learning_rate'],
+        esrgan=True
     )
     load_checkpoint(
         disc_checkpoint_file, discriminator,d_optimizer,esrgan_facts['learning_rate']
     )
 
 if checkpoint_facts['ESRGAN']['load_p_best']:
-    checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['checkpoint_gen'])
+    checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_gen'])
     print("==========>Loading the latest model from {}".format(checkpoint_file))
     generator.load_state_dict(torch.load(checkpoint_file))
 
@@ -240,16 +242,18 @@ def train_fn(
         tb_step += 1
         if idx % 100 == 0 and idx > 0:
             print(f"===>Saving Image At Epoch {epoch} with Batch Number {idx}")
-            img_grid_real = torchvision.utils.make_grid(hr, normalize=True)
-            img_grid_fake = torchvision.utils.make_grid(sr, normalize=True)
+            img_grid_real = torchvision.utils.make_grid(high_res, normalize=True)
+            img_grid_fake = torchvision.utils.make_grid(fake, normalize=True)
             writer.add_image("Ground Truth", img_grid_real, global_step=tb_step)
             writer.add_image("Fake Image", img_grid_fake, global_step=tb_step)
 
     return tb_step
 
 """ Training """
+tb_step = 0
 for epoch in range(esrgan_facts['start_p_epoch'], esrgan_facts['p_epochs']):
-    train_generator(generator, g_optimizer, eric_loader, epoch)
+    # train_generator(generator, g_optimizer, eric_loader, epoch)
+    tb_step += train_fn(eric_loader, discriminator, generator, g_optimizer, d_optimizer, PIXEL_CRITERION, CONTENT_CRITERION, g_scaler, d_scaler, tb_step, epoch)
     psnr_value = validate(generator, eric_valid_loader, epoch, "generator")
     is_best = psnr_value > best_psnr_value
     best_psnr_value = max(psnr_value, best_psnr_value)

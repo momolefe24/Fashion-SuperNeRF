@@ -2,17 +2,17 @@
 # ------------------- Experiment Facts
 experiment_facts:
  experiment_number: 1
- type: "ESRGAN_Without_Penality" # [ESRGAN, NeRF, Combined_NeRF_SR Viton, FashionNeRF]
+ type: "ESRGAN_With_Penalty" # [ESRGAN, NeRF, Combined_NeRF_SR Viton, FashionNeRF]
  root_path: "./"
  run_number: 1
- experiment_name: "ESRGAN Without Penalty"
- experiment_description: "Attempting to overfit super-resolution network to enhance image from 100x100 to 1024x768"
+ experiment_name: "ESRGAN With Penalty"
+ experiment_description: "In this experiment, we first trained the esrresnet and saved the checkpoints in experiment_01_run_01 and copied it into the esrgan_with_penalty repository. We now call train_fn() instead of train_generator function, which will implement esrgan with gradient penalty"
  cuda: True
 
 
 # ------------------- Checkpoint Facts
 checkpoint_facts:
- load_checkpoint: False
+ load_checkpoint: True
  save_checkpoint: True
  root_path: "Checkpoints"
  NeRF:
@@ -21,7 +21,7 @@ checkpoint_facts:
   checkpoint_gen: "esrgan_gen.pth.tar"
   checkpoint_esrresnet: "esrresnet_gen.pth.tar"
   best_checkpoint_gen: "best_esrgan_gen.pth.tar"
-  load_esrresnet: False
+  load_esrresnet: True
   load_esrgan: False
   load_p_best: False
   load_g_best: True
