@@ -17,7 +17,7 @@ def load_without_penalty_checkpoint():
 
 generator = Generator().to(device)
 discriminator = Discriminator().to(device)
-
+best_psnr_value = 0.0
 writer = SummaryWriter(paths_[-1])
 
 # Optimizers
