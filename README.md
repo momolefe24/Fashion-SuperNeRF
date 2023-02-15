@@ -1,12 +1,12 @@
-# Neural Super Radiance Field 
-**Goal:** Neural radiance field model comprised of a super-resolution network 
+# Enhanced Super-Resolution Generative Adversarial Network Without Penalty 
+**Goal:** Enahc 
 
 
 
 ## Table of Contents
 ## Contents
 - [Methodology]()
-  - [Introduction]()
+  - [Introduction](introduction)
   - [Topology]()
   - [Papers]()
 - [Results](#results)
@@ -20,20 +20,19 @@
 - [Citation]()
 
 ## Methodolgy
-A neural radiance marches 
-
+### Introduction 
+GANs are a zero-sum network architecture that learns to mimic data distributions. For the task of image super-resolution, we use the _ESRGAN_ that introduces the residual-in residual dense blocks without normalization to perform the task of super-resolution.
 ### How It Works
-The Neural Super Radiance Field is one model such that we add upsampling convolutions to a NeRF model
 
-- Given an image input of a 100x100, we would like to produce a 1024x768 image
-  - The 1024x768 specification serves as an input to the Virtual Try-On Network
-- The super-resolution model attaches itself to the result of the pixel colour and density prediction
-  - i.e NeRF outputs a 100x100 and a SR generator enhances it to 1024x768
-- Fdf
+The method uses a super-resolution resnet with residual blocks while removing all batch normalization layers to enhance the stability of training and consistent performance.
+
 
 ## Results
-### Experiment 1 / Run 1
 
+### Experiment 1 / Run 1
+#### Images
+
+#### Scalars
 
 
 #### Images 
