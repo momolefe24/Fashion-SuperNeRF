@@ -250,14 +250,14 @@ for epoch in range(esrgan_facts['start_p_epoch'], esrgan_facts['p_epochs']):
     is_best = psnr_value > best_psnr_value
     best_psnr_value = max(psnr_value, best_psnr_value)
     if checkpoint_facts['save_checkpoint']:
-        checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['checkpoint_esrresnet'])
-        save_checkpoint(generator, p_optimizer, filename=checkpoint_file)
+        checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_esrresnet'])
+        save_checkpoint(generator, p_optimizer, checkpoint_file)
     if is_best:
-        checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['best_checkpoint_gen'])
+        checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['best_checkpoint_gen'])
         torch.save(generator.state_dict(), checkpoint_file)
     p_scheduler.step()
 
-checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['best_checkpoint_gen'])
-disc_checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['checkpoint_disc'])
+checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['best_checkpoint_gen'])
+disc_checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_disc'])
 torch.save(generator.state_dict(), checkpoint_file)
 torch.save(discriminator.state_dict(), disc_checkpoint_file)
