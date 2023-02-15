@@ -96,7 +96,7 @@ def train_generator(gen, optimizer_g, loader, epoch):
                   f"Loss: {pixel_loss.item():.6f}.")
 
             step += 1
-        save_checkpoint(generator, optimizer_g, filename=f"{paths_[1]}/{checkpoint_facts['ESRGAN']['checkpoint_gen']}")
+        save_checkpoint(generator, optimizer_g, os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_gen']))
 
 def train_adversarial(gen, disc, loader, epoch):
     batches = len(loader)
