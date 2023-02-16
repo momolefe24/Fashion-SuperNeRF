@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=ESRGAN_without_penalty
+#SBATCH --job-name=With_ESRGAN_with_penalty
 #SBATCH -N 1
 #SBATCH -n 14 
 #SBATCH -t 72:00:00
-#SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/esrgan.without.penalty.%N.%j.out"
+#SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/esrgan.with.penalty.%N.%j.out"
 #SBATCH --ntasks=1
 #SBATCH --partition=bigbatch
-#SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/esrgan.without.penalty.%N.%j.err"
+#SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/esrgan.with.penalty.%N.%j.err"
 
 
 echo ------------------------------------------------------
