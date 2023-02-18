@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=Cat_NeRF
+#SBATCH --job-name=Joint_Loss
 #SBATCH -N 1
 #SBATCH -n 14
 #SBATCH -t 72:00:00
-#SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/cat.nerf.%N.%j.out"
+#SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/joint.loss.%N.%j.out"
 #SBATCH --ntasks=1
 #SBATCH --partition=stampede
-#SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/cat.nerf.%N.%j.err"
+#SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/joint.loss.%N.%j.err"
 
 
 echo ------------------------------------------------------
@@ -23,4 +23,4 @@ echo ------------------------------------------------------
 /bin/hostname
 source ~/.bashrc
 conda activate NeRF
-python3 nerf_sr.py -f experiments/experiment_01_run_01.yaml
+python3 joint_loss.py -f experiments/experiment_01_run_01.yaml

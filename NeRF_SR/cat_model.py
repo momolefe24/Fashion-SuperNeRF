@@ -104,7 +104,7 @@ class SuperNeRF(nn.Module):
             nn.Conv2d(num_channels, in_channels, 3, 1, 1, bias=True),
         )
 
-    def forward(self, x, rays_flat, t_vals, out_shape=None, mode="train"):
+    def forward(self, x, rays_flat, t_vals, out_shape=None, mode="train", skip_nerf=False):
         nerf_output, depth_map = self.nerf(rays_flat, t_vals, mode=mode)
         depth_map = depth_map.unsqueeze(dim=1)
         if out_shape is not None:
@@ -116,7 +116,10 @@ class SuperNeRF(nn.Module):
         x = self.after_cat(x)
         x = self.conv(self.residuals(x)) + x
         x = self.upsamples(x)
-        return self.final(x)
+        if experiment_facts['joint_loss']:
+            return self.final(x), nerf_output
+        else:
+            return self.final(x)
 
 
 class Discriminator(nn.Module):

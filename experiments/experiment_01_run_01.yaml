@@ -2,8 +2,11 @@
 # ------------------- Experiment Facts
 experiment_facts:
  experiment_number: 1
- type: "Cat_NeRF" # [ESRGAN, Cat_NeRF, NeRF, Combined_NeRF_SR Viton, FashionNeRF]
+ type: "Joint_Loss" # [ESRGAN, Cat_NeRF, NeRF, Combined_NeRF_SR Viton, FashionNeRF]
  root_path: "./"
+ joint_loss: True
+ sr_loss: 0.5
+ nerf_loss: 0.9
  run_number: 1
  experiment_name: "Concatenated Super Neural Radiance Field"
  experiment_description: "The idea is to forward propagate a NeRF and concatenate the predicted pixels and depth map into the super-resolution network and train it normally. The NeRF model is called inside the SRGAN method and trained adversarially"

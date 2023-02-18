@@ -1,5 +1,6 @@
 from config import *
 from dataset import ImageDataset
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torchvision
 # from ESRGAN.model import Generator, Discriminator, initialize_weights, ContentLoss
@@ -31,6 +32,7 @@ d_scaler = torch.cuda.amp.GradScaler()
 # Loss Functions
 PSNR_CRITERION = nn.MSELoss().to(device)
 PIXEL_CRITERION = nn.L1Loss().to(device)
+NERF_CRITERION = nn.MSELoss().to(device)
 CONTENT_CRITERION = ContentLoss().to(device)
 ADVERSARIAL_CRITERION = nn.BCELoss().to(device)
 
@@ -79,20 +81,23 @@ def train_generator(gen, optimizer_g, loader, epoch):
         lr_rays_flat = lr_rays_flat.to('cuda', torch.float32)
         lr_t_vals = lr_t_vals.to('cuda', torch.float32)
         gen.zero_grad()
-        sr = gen(lr_img, lr_rays_flat, lr_t_vals)
+        sr, nerf_output = gen(lr_img, lr_rays_flat, lr_t_vals)
         pixel_loss = PIXEL_CRITERION(sr, hr_img)
-        pixel_loss.backward()
+        nerf_loss = NERF_CRITERION(nerf_output, lr_img)
+        # pixel_loss.backward()
+        loss = experiment_facts['sr_loss'] * pixel_loss + experiment_facts['nerf_loss'] * nerf_loss
+        loss.backward()
         p_optimizer.step()
         iters = index + epoch * batches + 1
         # SAVE_DIR = config.SAVE_WRITER.format("Train_Generator/Loss")
-        writer.add_scalar("Generator loss", pixel_loss.item(), iters)
+        writer.add_scalar("Generator loss", loss.item(), iters)
         if index % 100 == 0 and index >= 0:
             img_grid_real = torchvision.utils.make_grid(hr_img, normalize=True)
             img_grid_fake = torchvision.utils.make_grid(sr, normalize=True)
             writer.add_image("Ground Truth", img_grid_real, global_step=index)
             writer.add_image("Fake Image", img_grid_fake, global_step=index)
             print(f"Train Epoch[{epoch + 1:04d}/{esrgan_facts['start_p_epoch']:04d}]({index + 1:05d}/{batches:05d}) "
-                  f"Loss: {pixel_loss.item():.6f}.")
+                  f"Pixel Loss: {pixel_loss.item():.6f}  NeRF Loss: {nerf_loss.item():.6f} NeRF_SR Loss: {loss.item():.6f}. ")
 
             step += 1
         save_checkpoint(generator, optimizer_g, os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_gen']))
@@ -171,6 +176,7 @@ def validate(gen, valid_dataloader, epoch, stage):
     batches = len(valid_dataloader)
     gen.eval()
     total_psnr_value = 0.0
+    total_nerf_psnr_value = 0.0
     with torch.no_grad():
         for index, data in enumerate(valid_dataloader):
             hr_img, lr_img, lr_rays_flat, lr_t_vals = data
@@ -178,20 +184,31 @@ def validate(gen, valid_dataloader, epoch, stage):
             lr_img = lr_img.to(device)
             lr_rays_flat = lr_rays_flat.to('cuda', torch.float32)
             lr_t_vals = lr_t_vals.to('cuda', torch.float32)
-            sr = gen(lr_img, lr_rays_flat, lr_t_vals, out_shape=(1024, 768), mode="test", skip_nerf=True)
+            sr, nerf_output = gen(lr_img, lr_rays_flat, lr_t_vals, out_shape=(1024, 768), mode="test", skip_nerf=True)
             mse_loss = PSNR_CRITERION(sr, hr_img)
+            lr_img = F.interpolate(lr_img, size=(1024 // esrgan_facts['upscaling_factor'], 768 // esrgan_facts['upscaling_factor']))
+            nerf_loss = PSNR_CRITERION(nerf_output, lr_img)
             psnr_value = 10 * torch.log10(1 / mse_loss).item()
+            nerf_psnr_value = 10 * torch.log10(1 / nerf_loss).item()
             total_psnr_value += psnr_value
+            total_nerf_psnr_value += nerf_psnr_value
         avg_psnr_value = total_psnr_value / batches
+        avg_nerf_psnr_value = total_nerf_psnr_value / batches
         if stage == "generator":
             writer.add_scalar("Val_Generator/PNSR", avg_psnr_value, epoch + 1)
+            writer.add_scalar("Val_Generator/NeRF_PSNR", avg_nerf_psnr_value, epoch + 1)
         elif stage == "adversarial":
             writer.add_scalar("Val_Adversarial/PNSR", avg_psnr_value, epoch + 1)
-        img_grid_real = torchvision.utils.make_grid(hr, normalize=True)
+            writer.add_scalar("Val_Adversarial/NeRF_PNSR", avg_nerf_psnr_value, epoch + 1)
+        img_grid_real = torchvision.utils.make_grid(hr_img, normalize=True)
         img_grid_fake = torchvision.utils.make_grid(sr, normalize=True)
+        img_grid_real_nerf = torchvision.utils.make_grid(lr_img, normalize=True)
+        img_grid_fake_nerf = torchvision.utils.make_grid(nerf_output, normalize=True)
         writer.add_image("Validation/Ground Truth", img_grid_real, global_step=epoch + 1)
         writer.add_image("Validation/Fake Image", img_grid_fake, global_step=epoch + 1)
-        print(f"Valid stage: {stage} Epoch[{epoch + 1:04d}] avg PSNR: {avg_psnr_value:.2f}.\n")
+        writer.add_image("Validation/NeRF Ground Truth", img_grid_real_nerf, global_step=epoch + 1)
+        writer.add_image("Validation/NeRF Fake Image", img_grid_fake_nerf, global_step=epoch + 1)
+        print(f"Valid stage: {stage} Epoch[{epoch + 1:04d}] avg PSNR: {avg_psnr_value:.2f} avg NeRF PSNR: {avg_nerf_psnr_value:.2f}.\n")
     return avg_psnr_value
 
 
