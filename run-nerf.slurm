@@ -5,7 +5,7 @@
 #SBATCH -t 72:00:00
 #SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/cat.nerf.%N.%j.out"
 #SBATCH --ntasks=1
-#SBATCH --partition=bigbatch
+#SBATCH --partition=stampede
 #SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/cat.nerf.%N.%j.err"
 
 
