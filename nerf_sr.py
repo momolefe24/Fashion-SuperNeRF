@@ -187,7 +187,7 @@ def validate(gen, valid_dataloader, epoch, stage):
             writer.add_scalar("Val_Generator/PNSR", avg_psnr_value, epoch + 1)
         elif stage == "adversarial":
             writer.add_scalar("Val_Adversarial/PNSR", avg_psnr_value, epoch + 1)
-        img_grid_real = torchvision.utils.make_grid(hr, normalize=True)
+        img_grid_real = torchvision.utils.make_grid(hr_img, normalize=True)
         img_grid_fake = torchvision.utils.make_grid(sr, normalize=True)
         writer.add_image("Validation/Ground Truth", img_grid_real, global_step=epoch + 1)
         writer.add_image("Validation/Fake Image", img_grid_fake, global_step=epoch + 1)
