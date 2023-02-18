@@ -69,8 +69,12 @@ class ImageDataset(Dataset):
 
         self.lr_images, self.lr_poses = get_images_and_poses("lr")
         self.hr_images, self.hr_poses = get_images_and_poses("hr")
-        self.lr_height, self.lr_width = eval(dataset_facts['image']['lr_shape_crop'])[1:]
-        self.hr_height, self.hr_width = eval(dataset_facts['image']['hr_shape_crop'])[1:]
+        if self.mode == "train":
+            self.lr_height, self.lr_width = eval(dataset_facts['image']['lr_shape_crop'])[1:]
+            self.hr_height, self.hr_width = eval(dataset_facts['image']['hr_shape_crop'])[1:]
+        else:
+            self.lr_height, self.lr_width = eval(dataset_facts['image']['lr_shape'])[1:]
+            self.hr_height, self.hr_width = eval(dataset_facts['image']['hr_shape'])[1:]
         self.lr_focal_length = .5 * self.lr_width / np.tan(.5 * nerf_facts['fc'])
         self.hr_focal_length = .5 * self.hr_width / np.tan(.5 * nerf_facts['fc'])
     def __len__(self):

@@ -104,11 +104,13 @@ class SuperNeRF(nn.Module):
             nn.Conv2d(num_channels, in_channels, 3, 1, 1, bias=True),
         )
 
-    def forward(self, x, rays_flat, t_vals, out_shape=None):
-        nerf_output, depth_map = self.nerf(rays_flat, t_vals)
+    def forward(self, x, rays_flat, t_vals, out_shape=None, mode="train"):
+        nerf_output, depth_map = self.nerf(rays_flat, t_vals, mode=mode)
         depth_map = depth_map.unsqueeze(dim=1)
         if out_shape is not None:
             x = F.interpolate(x, size=(out_shape[0]//esrgan_facts['upscaling_factor'], out_shape[1] // esrgan_facts['upscaling_factor']))
+            nerf_output = F.interpolate(nerf_output, size=(out_shape[0]//esrgan_facts['upscaling_factor'], out_shape[1] // esrgan_facts['upscaling_factor']))
+            depth_map = F.interpolate(depth_map, size=(out_shape[0]//esrgan_facts['upscaling_factor'], out_shape[1] // esrgan_facts['upscaling_factor']))
         initial = self.initial(x)
         x = torch.cat((nerf_output, initial, depth_map), dim=1)
         x = self.after_cat(x)
@@ -207,7 +209,7 @@ class NerF(nn.Module):
         # self.depth_super_resolution = Generator(1, filters=64, num_res_blocks=8)
         self.rand = rand
 
-    def forward(self, rays_flat, t_vals):
+    def forward(self, rays_flat, t_vals, mode='train'):
         out = self.input_layer(rays_flat)
         for i in range(self.num_layers):
             out = self.dense_layers(out)
@@ -215,15 +217,19 @@ class NerF(nn.Module):
                 out = torch.cat([out, rays_flat], dim=-1)
                 out = self.regulate_layers(out)
         out = self.output_layer(out)
-        out = out.reshape((training_facts['batch_size'], eval(dataset_facts['image']['lr_shape_crop'])[1], eval(dataset_facts['image']['lr_shape_crop'])[2], nerf_facts['N_samples'], dataset_facts['image']['channels']+1))
+        lr_shape = eval(dataset_facts['image']['lr_shape_crop']) if mode == "train" else eval(dataset_facts['image']['lr_shape'])
+        if mode == 'train':
+            out = out.reshape((training_facts['batch_size'], lr_shape[1], lr_shape[2], nerf_facts['N_samples'], dataset_facts['image']['channels']+1))
+        else:
+            out = out.reshape((training_facts['batch_size'], lr_shape[1], lr_shape[2], nerf_facts['N_samples'], dataset_facts['image']['channels']+1))
         rgb = torch.sigmoid(out[..., :-1])
         sigma_a = nn.ReLU()(out[..., -1])
 
 
         delta = t_vals[..., 1:] - t_vals[..., :-1]
         if self.rand:
-            delta = torch.cat([delta, torch.broadcast_to(torch.tensor([1e10]), (training_facts['batch_size'], eval(dataset_facts['image']['lr_shape_crop'])[1], eval(dataset_facts['image']['lr_shape_crop'])[2], 1)).to(device)],
-                              axis=-1)
+            delta = torch.cat([delta, torch.broadcast_to(torch.tensor([1e10]), (training_facts['batch_size'], lr_shape[1], lr_shape[2], 1)).to(device)],
+                                  axis=-1)
             alpha = 1.0 - torch.exp(-sigma_a * delta)
         else:
             delta = torch.cat([delta, torch.broadcast_to(torch.tensor([1e10]), (training_facts['batch_size'], 1)).to(device)], axis=-1)

@@ -172,11 +172,14 @@ def validate(gen, valid_dataloader, epoch, stage):
     gen.eval()
     total_psnr_value = 0.0
     with torch.no_grad():
-        for index, (lr, hr) in enumerate(valid_dataloader):
-            lr = lr.to(device)
-            hr = hr.to(device)
-            sr = gen(lr, out_shape=(1024, 768))
-            mse_loss = PSNR_CRITERION(sr, hr)
+        for index, data in enumerate(valid_dataloader):
+            hr_img, lr_img, lr_rays_flat, lr_t_vals = data
+            hr_img = hr_img.to(device)
+            lr_img = lr_img.to(device)
+            lr_rays_flat = lr_rays_flat.to('cuda', torch.float32)
+            lr_t_vals = lr_t_vals.to('cuda', torch.float32)
+            sr = gen(lr_img, lr_rays_flat, lr_t_vals, out_shape=(1024, 768), mode="test")
+            mse_loss = PSNR_CRITERION(sr, hr_img)
             psnr_value = 10 * torch.log10(1 / mse_loss).item()
             total_psnr_value += psnr_value
         avg_psnr_value = total_psnr_value / batches
