@@ -19,7 +19,7 @@ stream=sys.stdout,
 
 paths_ = []
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = "cpu"
+device = "cuda"
 def gradient_penalty(critic, real, fake, device):
     BATCH_SIZE, C, H, W = real.shape
     alpha = torch.rand((BATCH_SIZE, 1, 1, 1)).repeat(1, C, H, W).to(device)
@@ -43,26 +43,35 @@ def gradient_penalty(critic, real, fake, device):
     return gradient_penalty
 
 
-def save_checkpoint(model, optimizer, filename="my_checkpoint.pth.tar"):
+def save_checkpoint(model, optimizer, checkpoint_file):
     print("=> Saving checkpoint")
     checkpoint = {
         "state_dict": model.state_dict(),
         "optimizer": optimizer.state_dict(),
     }
-    torch.save(checkpoint, filename)
+    torch.save(checkpoint, checkpoint_file)
 
 
-def load_checkpoint(checkpoint_file, model, optimizer, lr):
-    print("=> Loading checkpoint")
+def load_checkpoint(checkpoint_file, model, optimizer, lr, vgg=False, esrgan=False):
+    print("=>Loading checkpoint")
+
     checkpoint = torch.load(checkpoint_file, map_location=device)
-    # model.load_state_dict(checkpoint)
-    model.load_state_dict(checkpoint["state_dict"])
-    optimizer.load_state_dict(checkpoint["optimizer"])
-
-    # If we don't do this then it will just have learning rate of old checkpoint
-    # and it will lead to many hours of debugging \:
-    for param_group in optimizer.param_groups:
-        param_group["lr"] = lr
+    if vgg:
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
+    elif esrgan:
+        checkpoint = torch.load(checkpoint_file, map_location=device)
+        model.load_state_dict(checkpoint)
+        optimizer.load_state_dict(checkpoint)
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
+    else:
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
 
 
 def plot_examples(low_res_folder, gen):
@@ -144,7 +153,27 @@ esrgan_facts = training_facts["ESRGAN"]
 nerf_facts = training_facts["NeRF"]
 
 
-# Transforms
+# highres_transform = transform_lambda(high_res)
+highres_transform = A.Compose(
+    [A.Normalize(mean=[0, 0, 0], std=[1, 1, 1]), ToTensorV2()]
+)
+lowres_transform = A.Compose(
+    [
+        A.Resize(width=esrgan_facts['high_res'] // esrgan_facts['upscaling_factor'], height=esrgan_facts['high_res'] // esrgan_facts['upscaling_factor'], interpolation=Image.BICUBIC),
+        A.Normalize(mean=[0, 0, 0], std=[1, 1, 1]),
+        ToTensorV2(),
+    ]
+)
+
+both_transforms_ = A.Compose(
+    [
+        A.RandomCrop(width=esrgan_facts['high_res'], height=esrgan_facts['high_res']),
+        A.HorizontalFlip(p=0.5),
+        A.RandomRotate90(p=0.5),
+    ]
+)
+
+
 test_transform = A.Compose(
     [
         A.Normalize(mean=[0, 0, 0], std=[1, 1, 1]),

@@ -41,6 +41,6 @@ class InputPipeline(Dataset):
         lr_image, hr_image = self.lr_images[index], self.hr_images[index]
         lr_rays_flat, lr_t_vals = map_fn(lr_pose, self.lr_focal_length, self.lr_width, self.lr_height, nerf_facts['near'], nerf_facts['far'], nerf_facts['N_samples'], rand=self.rand)
         # hr_rays_flat, hr_t_vals = map_fn(hr_pose, self.hr_focal_length, self.hr_width, self.hr_height, nerf_facts['near'], nerf_facts['far'], nerf_facts['N_samples'], rand=self.rand)
-        return hr_image, lr_rays_flat, lr_t_vals
+        return lr_image, hr_image, lr_rays_flat, lr_t_vals
 
 

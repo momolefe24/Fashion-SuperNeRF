@@ -2,11 +2,11 @@
 # ------------------- Experiment Facts
 experiment_facts:
  experiment_number: 1
- type: "Combined_NeRF_SR" # [ESRGAN, NeRF, Combined_NeRF_SR Viton, FashionNeRF]
+ type: "Cat_NeRF" # [ESRGAN, Cat_NeRF, NeRF, Combined_NeRF_SR Viton, FashionNeRF]
  root_path: "./"
  run_number: 1
- experiment_name: "Neural Radiance Field For Eric"
- experiment_description: "Perform NeRF on Eric, eval pretrained SR for HR-VITON"
+ experiment_name: "Concatenated Super Neural Radiance Field"
+ experiment_description: "The idea is to forward propagate a NeRF and concatenate the predicted pixels and depth map into the super-resolution network and train it normally. The NeRF model is called inside the SRGAN method and trained adversarially"
  cuda: True
 
 
@@ -18,8 +18,16 @@ checkpoint_facts:
  NeRF:
   checkpoint_nerf: "NeRF.pth"
  ESRGAN:
-  checkpoint_gen: "esrgan_gen.pth"
-  checkpoint_disc: "esrgan_disc.pth"
+  checkpoint_gen: "esrgan_gen.pth.tar"
+  checkpoint_esrresnet: "esrresnet_gen.pth.tar"
+  best_checkpoint_gen: "best_esrgan_gen.pth.tar"
+  load_esrresnet: False
+  load_esrgan: False
+  load_p_best: False
+  load_g_best: True
+  esrgan: False
+  vgg: False
+  checkpoint_disc: "esrgan_disc.pth.tar"
  VITON:
   checkpoint_seg: "seg_final.pth"
   checkpoint_gmm: "gmm_final.pth"
@@ -53,7 +61,9 @@ dataset_facts:
  image:
   channels: 3
   lr_shape: (3,100,100)
+  lr_shape_crop: (3,32,32)
   hr_shape: (3,1024,768)
+  hr_shape_crop: (3, 256, 256)
  root_path: "Dataset"
  script_path: "dataset.py"
  transforms:
@@ -101,20 +111,29 @@ training_facts:
   half_res: False
   pos_encode_dims: 16
  ESRGAN:
-  epochs: 2000
+  epochs: 465
+  upscaling_factor: 8
+  high_res: 256
+  p_epochs: 1162
+  start_p_epoch: 0
   filters: 64
   num_res_blocks: 8
   upscale_factor: 10
   leaky_relu: 0.2
-  features: [64, 64, 128, 128, 256,256, 512, 512, 1024, 1024]
+  features: [ 64, 64, 128, 128, 256,256, 512, 512, 1024, 1024 ]
   adaptive_average_pool: (12, 12)
   initialized_weight_scale: 0.1
   residual_in_residual_dense_block: 0.2
   lambda_gp: 10
   lambda_adv: 5e-3 # adversarial loss weight"
-  lambda_pixel: 1e-2 # pixel-wise loss weight
+  content_weight: 1.0 # Content weight
+  pixel_weight: 1e-2 # pixel-wise loss weight
+  p_optimizer_lr: 0.0002 # Generator
+  g_optimizer_lr: 0.0001 # Generator
+  d_optimizer_lr: 0.0001 # Discriminator
   interpolation_mode: "nearest"
   learning_rate: 0.0002 # Adam
+  betas: (0.9, 0.999)
   beta1: 0.9
   beta2: 0.999
   decay_epoch: 100

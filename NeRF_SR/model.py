@@ -55,8 +55,9 @@ class Net(nn.Module):
             depth_map = torch.sum(weights * t_vals, axis=-1)
         else:
             depth_map = torch.sum(weights * t_vals[:, None, None], axis=-1)
-        rgb = rgb.permute(0, 3, 2, 1)
-        rgb = self.super_resolution(rgb)
+        nerf_output = rgb.permute(0, 3, 2, 1)
+        # rgb = torch.cat((rgb, image), dim=2)
+        sr_output = self.super_resolution(nerf_output)
         # depth_map = self.depth_super_resolution(depth_map)
-        return rgb, depth_map
+        return nerf_output, sr_output, depth_map
 

@@ -1,9 +1,15 @@
+# One super-resolution network that concats the conv(3, 3) with nerf output and performs further super-resolution
+
 import torch
-from torch import nn
+import torch.nn as nn
 from config import *
+from .utils import *
 import torch.nn.functional as F
 import torchvision.models as models
 from torch import Tensor
+from ESRGAN.model import Generator
+
+
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, use_act, **kwargs):
@@ -67,9 +73,10 @@ class RRDB(nn.Module):
         return self.rrdb(x) * self.residual_beta + x
 
 
-class Generator(nn.Module):
-    def __init__(self, in_channels=3, num_channels=64, num_blocks=23):
+class SuperNeRF(nn.Module):
+    def __init__(self, in_channels=3, num_channels=64, num_blocks=23, num_layers=8):
         super().__init__()
+        self.nerf = NerF(num_layers).to(device)
         self.initial = nn.Conv2d(
             in_channels,
             num_channels,
@@ -83,17 +90,29 @@ class Generator(nn.Module):
         self.upsamples = nn.Sequential(
             *[UpsampleBlock(num_channels) for _ in range(3)]
         )
+        self.after_cat = nn.Conv2d(
+            68,
+            num_channels,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias=True,
+        )
         self.final = nn.Sequential(
             nn.Conv2d(num_channels, num_channels, 3, 1, 1, bias=True),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(num_channels, in_channels, 3, 1, 1, bias=True),
         )
 
-    def forward(self, x, out_shape=None):
+    def forward(self, x, rays_flat, t_vals, out_shape=None):
+        nerf_output, depth_map = self.nerf(rays_flat, t_vals)
+        depth_map = depth_map.unsqueeze(dim=1)
         if out_shape is not None:
             x = F.interpolate(x, size=(out_shape[0]//esrgan_facts['upscaling_factor'], out_shape[1] // esrgan_facts['upscaling_factor']))
         initial = self.initial(x)
-        x = self.conv(self.residuals(initial)) + initial
+        x = torch.cat((nerf_output, initial, depth_map), dim=1)
+        x = self.after_cat(x)
+        x = self.conv(self.residuals(x)) + x
         x = self.upsamples(x)
         return self.final(x)
 
@@ -169,3 +188,57 @@ class ContentLoss(nn.Module):
         loss = F.l1_loss(self.feature_extractor(sr), self.feature_extractor(hr))
 
         return loss
+
+class NerF(nn.Module):
+    '''
+    Generates the NeRF neural network
+    Args:
+        num_layers: The number of MLP layers
+        num_pos: The number of dimensions of positional encoding
+    '''
+    def __init__(self, num_layers, rand=True):
+        super().__init__()
+        self.input_layer = nn.Sequential(nn.Linear(99, 64), nn.ReLU())
+        self.dense_layers = nn.Sequential(nn.Linear(64, 64), nn.ReLU())
+        self.regulate_layers = nn.Sequential(nn.Linear(99+64, 64), nn.ReLU())
+        self.output_layer = nn.Linear(64, 4)
+        self.num_layers = num_layers
+        self.layers = [64] * 8
+        # self.depth_super_resolution = Generator(1, filters=64, num_res_blocks=8)
+        self.rand = rand
+
+    def forward(self, rays_flat, t_vals):
+        out = self.input_layer(rays_flat)
+        for i in range(self.num_layers):
+            out = self.dense_layers(out)
+            if i % 4 == 0 and i > 0:
+                out = torch.cat([out, rays_flat], dim=-1)
+                out = self.regulate_layers(out)
+        out = self.output_layer(out)
+        out = out.reshape((training_facts['batch_size'], eval(dataset_facts['image']['lr_shape_crop'])[1], eval(dataset_facts['image']['lr_shape_crop'])[2], nerf_facts['N_samples'], dataset_facts['image']['channels']+1))
+        rgb = torch.sigmoid(out[..., :-1])
+        sigma_a = nn.ReLU()(out[..., -1])
+
+
+        delta = t_vals[..., 1:] - t_vals[..., :-1]
+        if self.rand:
+            delta = torch.cat([delta, torch.broadcast_to(torch.tensor([1e10]), (training_facts['batch_size'], eval(dataset_facts['image']['lr_shape_crop'])[1], eval(dataset_facts['image']['lr_shape_crop'])[2], 1)).to(device)],
+                              axis=-1)
+            alpha = 1.0 - torch.exp(-sigma_a * delta)
+        else:
+            delta = torch.cat([delta, torch.broadcast_to(torch.tensor([1e10]), (training_facts['batch_size'], 1)).to(device)], axis=-1)
+            alpha = 1.0 - torch.exp(-sigma_a * delta[:, None, None, :])
+
+        exp_term = 1.0 - alpha
+        epsilon = 1e-10
+        transmittance = torch.cumprod(exp_term + epsilon, -1)
+        weights = alpha * transmittance
+        rgb = torch.sum(weights[..., None] * rgb, axis=-2)
+
+        if self.rand:
+            depth_map = torch.sum(weights * t_vals, axis=-1)
+        else:
+            depth_map = torch.sum(weights * t_vals[:, None, None], axis=-1)
+        nerf_output = rgb.permute(0, 3, 2, 1)
+        return nerf_output, depth_map
+
