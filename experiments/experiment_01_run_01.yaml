@@ -4,7 +4,7 @@ experiment_facts:
  experiment_number: 1
  type: "Joint_Loss" # [ESRGAN, Cat_NeRF, NeRF, Combined_NeRF_SR Viton, FashionNeRF]
  root_path: "./"
- joint_loss: True
+ joint_loss: False
  sr_loss: 0.5
  nerf_loss: 0.9
  run_number: 1

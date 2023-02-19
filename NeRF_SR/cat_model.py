@@ -104,7 +104,7 @@ class SuperNeRF(nn.Module):
             nn.Conv2d(num_channels, in_channels, 3, 1, 1, bias=True),
         )
 
-    def forward(self, x, rays_flat, t_vals, out_shape=None, mode="train", skip_nerf=False):
+    def forward(self, x, rays_flat, t_vals, out_shape=None, mode="train"):
         nerf_output, depth_map = self.nerf(rays_flat, t_vals, mode=mode)
         depth_map = depth_map.unsqueeze(dim=1)
         if out_shape is not None:

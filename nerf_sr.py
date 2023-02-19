@@ -178,7 +178,7 @@ def validate(gen, valid_dataloader, epoch, stage):
             lr_img = lr_img.to(device)
             lr_rays_flat = lr_rays_flat.to('cuda', torch.float32)
             lr_t_vals = lr_t_vals.to('cuda', torch.float32)
-            sr = gen(lr_img, lr_rays_flat, lr_t_vals, out_shape=(1024, 768), mode="test", skip_nerf=True)
+            sr = gen(lr_img, lr_rays_flat, lr_t_vals, out_shape=(1024, 768), mode="test")
             mse_loss = PSNR_CRITERION(sr, hr_img)
             psnr_value = 10 * torch.log10(1 / mse_loss).item()
             total_psnr_value += psnr_value
