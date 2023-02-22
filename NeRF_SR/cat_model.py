@@ -91,7 +91,7 @@ class SuperNeRF(nn.Module):
             *[UpsampleBlock(num_channels) for _ in range(3)]
         )
         self.after_cat = nn.Conv2d(
-            68,
+            67,
             num_channels,
             kernel_size=3,
             stride=1,
@@ -106,13 +106,13 @@ class SuperNeRF(nn.Module):
 
     def forward(self, x, rays_flat, t_vals, out_shape=None, mode="train"):
         nerf_output, depth_map = self.nerf(rays_flat, t_vals, mode=mode)
-        depth_map = depth_map.unsqueeze(dim=1)
+        # depth_map = depth_map.unsqueeze(dim=1)
         if out_shape is not None:
             x = F.interpolate(x, size=(out_shape[0]//esrgan_facts['upscaling_factor'], out_shape[1] // esrgan_facts['upscaling_factor']))
             nerf_output = F.interpolate(nerf_output, size=(out_shape[0]//esrgan_facts['upscaling_factor'], out_shape[1] // esrgan_facts['upscaling_factor']))
-            depth_map = F.interpolate(depth_map, size=(out_shape[0]//esrgan_facts['upscaling_factor'], out_shape[1] // esrgan_facts['upscaling_factor']))
+            # depth_map = F.interpolate(depth_map, size=(out_shape[0]//esrgan_facts['upscaling_factor'], out_shape[1] // esrgan_facts['upscaling_factor']))
         initial = self.initial(x)
-        x = torch.cat((nerf_output, initial, depth_map), dim=1)
+        x = torch.cat((nerf_output, initial), dim=1)
         x = self.after_cat(x)
         x = self.conv(self.residuals(x)) + x
         x = self.upsamples(x)

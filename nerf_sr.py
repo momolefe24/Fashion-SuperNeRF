@@ -102,9 +102,16 @@ def train_adversarial(gen, disc, loader, epoch):
     disc.train()
     gen.train()
     step = 0
-    for index, (lr, hr) in enumerate(loader):
-        lr = lr.to(device)
+    for index, data in enumerate(loader):
+        hr, lr, lr_rays_flat, lr_t_vals = data
         hr = hr.to(device)
+        lr = lr.to(device)
+        lr_rays_flat = lr_rays_flat.to('cuda', torch.float32)
+        lr_t_vals = lr_t_vals.to('cuda', torch.float32)
+        gen.zero_grad()
+
+        # lr = lr.to(device)
+        # hr = hr.to(device)
         label_size = lr.size(0)
         real_label = torch.full([label_size, 1], 1.0, dtype=lr.dtype, device=device)
         fake_label = torch.full([label_size, 1], 0.0, dtype=lr.dtype, device=device)
@@ -112,7 +119,7 @@ def train_adversarial(gen, disc, loader, epoch):
         # Initialize the gradient of the discriminator model.
         disc.zero_grad()
         # Generate super-resolution images.
-        sr = gen(lr)
+        sr = gen(lr, lr_rays_flat, lr_t_vals)
         # Calculate the loss of the discriminator model on the high-resolution image.
         hr_output = disc(hr)
         sr_output = disc(sr.detach())
@@ -134,15 +141,16 @@ def train_adversarial(gen, disc, loader, epoch):
         # Initialize the gradient of the generator model.
         gen.zero_grad()
         # Generate super-resolution images.
-        sr = gen(lr)
+        # sr = gen(lr, lr_rays_flat, lr_t_vals)
+
         # Calculate the loss of the discriminator model on the super-resolution image.
         hr_output = disc(hr.detach())
         sr_output = disc(sr)
         # Perceptual loss=0.01 * pixel loss + 1.0 * content loss + 0.005 * adversarial loss.
-        pixel_loss = esrgan_facts['pixel_weight'] * PIXEL_CRITERION(sr, hr.detach())
+        pixel_loss = eval(esrgan_facts['pixel_weight']) * PIXEL_CRITERION(sr, hr.detach())
         content_loss = esrgan_facts['content_weight'] * CONTENT_CRITERION(sr, hr.detach())
         clamp_adversarial_loss = torch.clamp(sr_output - torch.mean(hr_output), min=0, max=1)
-        adversarial_loss = esrgan_facts['lambda_adv'] * ADVERSARIAL_CRITERION(clamp_adversarial_loss, real_label)
+        adversarial_loss = eval(esrgan_facts['lambda_adv']) * ADVERSARIAL_CRITERION(clamp_adversarial_loss, real_label)
         # Update the weights of the generator model.
         g_loss = pixel_loss + content_loss + adversarial_loss
         g_loss.backward()
@@ -162,7 +170,7 @@ def train_adversarial(gen, disc, loader, epoch):
             writer.add_image("Ground Truth", img_grid_real, global_step=iters)
             writer.add_image("Fake Image", img_grid_fake, global_step=iters)
             print(f"Train stage: adversarial "
-                  f"Epoch[{epoch + 1:04d}/{EPOCHS:04d}]({index + 1:05d}/{batches:05d}) "
+                  f"Epoch[{epoch + 1:04d}/{esrgan_facts['p_epochs']:04d}]({index + 1:05d}/{batches:05d}) "
                   f"D Loss: {d_loss.item():.6f} G Loss: {g_loss.item():.6f} "
                   f"D(HR): {d_hr:.6f} D(SR1)/D(SR2): {d_sr1:.6f}/{d_sr2:.6f}.")
 
@@ -252,7 +260,8 @@ def train_fn(
 """ Training """
 tb_step = 0
 for epoch in range(esrgan_facts['start_p_epoch'], esrgan_facts['p_epochs']):
-    train_generator(generator, g_optimizer, eric_loader, epoch)
+    # train_generator(generator, g_optimizer, eric_loader, epoch)
+    train_adversarial(generator, discriminator, eric_loader, epoch)
     # tb_step += train_fn(eric_loader, discriminator, generator, g_optimizer, d_optimizer, PIXEL_CRITERION, CONTENT_CRITERION, g_scaler, d_scaler, tb_step, epoch)
     psnr_value = validate(generator, eric_valid_loader, epoch, "generator")
     is_best = psnr_value > best_psnr_value

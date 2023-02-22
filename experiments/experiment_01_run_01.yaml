@@ -2,9 +2,10 @@
 # ------------------- Experiment Facts
 experiment_facts:
  experiment_number: 1
- type: "Joint_Loss" # [ESRGAN, Cat_NeRF, NeRF, Combined_NeRF_SR Viton, FashionNeRF]
+ branch:
+ type: "Joint_NeRF" # [ESRGAN, Cat_NeRF, NeRF, Combined_NeRF_SR Viton, FashionNeRF]
  root_path: "./"
- joint_loss: False
+ joint_loss: True
  sr_loss: 0.5
  nerf_loss: 0.9
  run_number: 1
@@ -91,7 +92,7 @@ model_facts:
 # ------------------- Training Facts
 training_facts:
  script_path: "train.py"
- batch_size: 2
+ batch_size: 1
  num_workers: 1
  NeRF:
   epochs: 5000

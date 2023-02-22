@@ -184,7 +184,7 @@ def validate(gen, valid_dataloader, epoch, stage):
             lr_img = lr_img.to(device)
             lr_rays_flat = lr_rays_flat.to('cuda', torch.float32)
             lr_t_vals = lr_t_vals.to('cuda', torch.float32)
-            sr, nerf_output = gen(lr_img, lr_rays_flat, lr_t_vals, out_shape=(1024, 768), mode="test", skip_nerf=True)
+            sr, nerf_output = gen(lr_img, lr_rays_flat, lr_t_vals, out_shape=(1024, 768), mode="test")
             mse_loss = PSNR_CRITERION(sr, hr_img)
             lr_img = F.interpolate(lr_img, size=(1024 // esrgan_facts['upscaling_factor'], 768 // esrgan_facts['upscaling_factor']))
             nerf_loss = PSNR_CRITERION(nerf_output, lr_img)
