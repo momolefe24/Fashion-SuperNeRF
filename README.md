@@ -1,26 +1,28 @@
 # Neural Super Radiance Field 
 **Goal:** Neural radiance field model comprised of a super-resolution network 
 
-
-
-## Table of Contents
-## Contents
-- [Methodology]()
-  - [Introduction]()
-  - [Topology]()
-  - [Papers]()
+# Table of Contents
+- [Introduction](#introduction)
+- [Methodology](#methodology)
+  - [Introduction](#introduction)
+  - [Topology](#topology)
+  - [Papers](#papers)
 - [Results](#results)
-  - [Experiment 1]()
-    - [Description]()
+  - [Experiment 1](#experiment-1)
+    - [Description](#description)
     - [Images](#images)
-    - [Metrics & Loss Curves]()
-    - [Issues & Problems]()
-- [Contribution]()
-- [Documentation]()
-- [Citation]()
+    - [Metrics & Loss Curves](#metric-&-loss-curves)
+    - [Issues & Problems](#issues-&-problems)
+- [Contribution](#contributions)
+- [Documentation](#documentation)
+- [Citation](#citation)
 
-## Methodolgy
-A neural radiance marches 
+#Introduction
+The neural radiance field encodes a scene representation in its weights to synthesize novel views by learning to optimize the pixel loss between the volume renderered colour and density of a NeRF model. The dataset is transformed into cropped image pairs of (256,256) - (64,64) for effiecient training. Our strategy is to forward propagate the input image into the neural radiance field, and concatenate the result and its depth map into the super-resolution network and back propagate the content loss. The super-resolution network follows an Enhanced SRGAN
+# Methodolgy
+The neural super radiance field is trained using a multi-task learning framework where the network trains to learn two tasks
+- encode weights of a scene representation in its by creating a novel view
+- upsample a low-resolution to match a specific resolution of 1024x768
 
 ### How It Works
 The Neural Super Radiance Field is one model such that we add upsampling convolutions to a NeRF model
