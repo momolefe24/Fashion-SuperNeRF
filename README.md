@@ -4,11 +4,10 @@
 # Table of Contents
 - [Introduction](#introduction)
 - [Methodology](#methodology)
-  - [Introduction](#introduction)
   - [Topology](#topology)
   - [Papers](#papers)
 - [Results](#results)
-  - [Experiment 1](#experiment-1)
+  - [Experiment 1](#experiment_1)
     - [Description](#description)
     - [Images](#images)
     - [Metrics & Loss Curves](#metric-&-loss-curves)
