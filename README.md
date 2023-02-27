@@ -17,11 +17,11 @@
 - [Documentation](#documentation)
 - [Citation](#citation)
 
-#Introduction
+# Introduction
 
 The neural radiance field encodes a scene representation in its weights to synthesize novel views by learning to optimize the pixel loss between the volume renderered colour and density of a NeRF model. The dataset is transformed into cropped image pairs of (256,256) - (64,64) for effiecient training. Our strategy is to forward propagate the input image into the neural radiance field, and concatenate the result and its depth map into the super-resolution network and back propagate the content loss. The super-resolution network follows an Enhanced SRGAN
 
-#Strategy
+# Strategy
 
 This branch mainly focuses on performing the crop transformation after forward propagating a 100x100 image into the NeRF. The super-resolution image takes in the cropped image as input and the two tasks are concatenated during the training process. A joint loss is taken between the two tasks focusing on optimizing the NeRF more.
 
@@ -75,9 +75,3 @@ reference paper:
 }
 ```
 
-[Docs]: https://ibm.github.io/LNN/introduction.html
-[Papers]: https://ibm.github.io/LNN/papers.html
-[Education]: https://ibm.github.io/LNN/education/education.html
-[API]: https://ibm.github.io/LNN/usage.html
-[Module]: https://ibm.github.io/LNN/lnn/LNN.html
-[Neuro-Symbolic AI]: https://research.ibm.com/teams/neuro-symbolic-ai
