@@ -3,23 +3,27 @@
 experiment_facts:
  experiment_number: 1
  run_number: 1
- experiment_name: "Beta Test for Simple Fashion NeRF to synthesize novel views of virtual try-on."
- experiment_description: "Perform simple neural radiance field, and perform super-resolution to prepare for viton-HD"
+ root_path: "./"
+ type: "pretrain_nerf" # Branch name
+ experiment_name: "Pretrained Neural Radiance Field"
+ experiment_description: "Perform simple neural radiance field"
  cuda: True
- 
- checkpoints:
-  load_checkpoint: False
-  save_checkpoint: True
-  NeRF:
-   checkpoint_nerf: "NeRF.pth"
-  SR:
-   checkpoint_gen: "gen.pth"
-   checkpoint_disc: "disc.pth"
-  VITON:
-   checkpoint_seg: "seg_final.pth"
-   checkpoint_gmm: "gmm_final.pth"
-   checkpoint_alias: "alias_final.pth"
-   checkpoint_model: "model.pth"
+
+checkpoint_facts:
+ load_checkpoint: False
+ save_checkpoint: True
+ root_path: "Checkpoints"
+ nerf_checkpoints:
+  checkpoint_nerf: "NeRF.pth"
+  checkpoint_nerf_fine: "NeRF_Fine.pth"
+ SR:
+  checkpoint_gen: "gen.pth"
+  checkpoint_disc: "disc.pth"
+ VITON:
+  checkpoint_seg: "seg_final.pth"
+  checkpoint_gmm: "gmm_final.pth"
+  checkpoint_alias: "alias_final.pth"
+  checkpoint_model: "model.pth"
 
 
 
@@ -27,81 +31,81 @@ experiment_facts:
 results_facts:
  experiment_number: 1
  run_number: 1
- folder:
-  root_path: "Results"
+ root_path: "Results"
+ nerf_results:
   NeRF_path: "Results/NeRF"
-  ESRGAN_path: "Results/ESRGAN"
-  VITON_path: "Resuls/VITON"
-  basedir: "./logs"
-  nerf_real_dir: "tensorboard/NERF_real"
-  nerf_model_dir: "tensorboard/NERF_model"
- training_evaluation:
-  training_loss: ""
-  training_images: ""
- summary:
-  weights_dir: "weights"
-  samples_dir: "samples"
-  writer_logs_dir: "log"
+ sr_results:
+ viton_results:
+ summary_facts:
+  root_path: "Summary"
+  nerf_summary:
+   weights_dir: "weights/NeRF"
+   samples_dir: "samples/NeRF"
+   writer_logs_dir: "log"
 
 # ------------------- Dataset Facts
 dataset_facts:
- model: "eric"
- dataset_type: "blender"
- image:
-  channels: 3
-  lr_shape: (3,100,100)
-  hr_shape: (3,1024,768)
- folder_path: "Dataset"
- script_path: "dataset.py"
- transforms:
-  mean:
-   - 0
-   - 0
-   - 0
-  std:
-   - 1
-   - 1
-   - 1
+ nerf_data:
+  blender_model: "eric"
+  image_shape: (100, 100)
+  white_background: False
+  use_viewdirs: True
+  blender_data: "people" # [nerf_liff_data, nerf_synthetic, nerf_people]
+  transforms:
+   mean: (0, 0, 0)
+   std: (1, 1, 1)
+ sr_data:
+ viton_data:
 
+
+# ------------------- Embedding Facts
+embedding_facts:
+ nerf_embedder:
+  multi_res: 10
+  multi_res_views: 4
+  input_dim: 3
+  include_input: True
+  num_freqs: 10
+  log_sampling: True
+
+# ------------------- Hyperparameter Facts
+hyperparameter_facts:
+ batch_size: 1
+ num_workers: 1
+ epochs: 5000
+ nerf_hyperparameters:
+  random_samples: 1024
+  near: 2.
+  far: 6.
+  num_samples: 64
+  precrop_iters: 500
+  precrop_factor: 0.5
+  raw_predictions: True # retraw
+  perturb: 1.0 # If non-zero, each ray is sampled at stratified random points in time.
+  importance: 128
+  raw_noise_std: 0
+  num_chunks: 32 # chunk: 33024 # Maximum number of rays to process simultaneously. Used to control maximum memory usage
+  factor: 8
+ sr_hyperparameters:
+ viton_hyperparameters:
 
 # ------------------- Model Facts
 model_facts:
- script_path:
-  NeRF: "NeRF/model.py"
-  SR: "ESRGAN/model.py"
-  VITON: "VITON/model.py"
- in_channels: 3
-
-# ------------------- Training Facts
-training_facts:
- script_path: "train.py"
- batch_size: 10
- num_workers: 1
- NeRF:
-  epochs: 5000
-  no_batching: True
-  use_viewdirs: True
-  white_bkgd: False
+ nerf_model:
+  lrate: 0.0005
   lrate_decay: 500
-  N_samples: 64
-  N_importance: 128
-  N_rand: 1024
-  precrop_iters: 500
-  precrop_frec: 0.5
-  half_res: False
- ESRGAN:
-  epochs: 2000
-  lambda_gp: 10
-  learning_rate: 1.0e-4
- VITON:
-  epochs: 2000
-  display_freq: 1
-  semantic_nc: 13 # Number of parsing map classes
-  init_type: "xavier"
-  init_variance: 0.02 # Variance of the initialization distribution
-  grid_size: 5 # For GMM
-  alias_generator:
-   norm_G: "spectralaliasinstance"
-   ngf: 64 # Number of generator filters in the first conv layer
-   num_upsampling_layers: "most"
-  learning_rate: 1.0e-5
+  network_fine: True
+  input_channel: 3
+  input_channel_views: 3
+  output_channel: 5
+  skips: 4
+  netchunk: 65536
+  netdepth: 8
+  netdepth_fine: 8
+  net_width: 256
+  net_width_fine: 256
+  perturb: 1.0
+  precrop_frac: 0.5
+ sr_model:
+ viton_model:
+
