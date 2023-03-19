@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=pretrain_nerf
 #SBATCH -N 1
-#SBATCH -w mscluster52
 #SBATCH -n 14
+#SBATCH -w mscluster69
 #SBATCH -t 72:00:00
 #SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/pretrain.nerf.%N.%j.out"
 #SBATCH --ntasks=1
-#SBATCH --partition=stampede
+#SBATCH --partition=bigbatch
 #SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/pretrain.nerf.%N.%j.err"
 
 
@@ -22,6 +22,7 @@ echo SLURM: job name is $SLURM_JOB_NAME
 echo ------------------------------------------------------
 
 /bin/hostname
+nvidia-smi
 source ~/.bashrc
 conda activate NeRF
-python3 main.py
+python3 main.py -f experiments/experiment_01_run_01.yaml

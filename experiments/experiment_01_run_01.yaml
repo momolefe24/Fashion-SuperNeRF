@@ -4,17 +4,17 @@ experiment_facts:
  experiment_number: 1
  run_number: 1
  root_path: "./"
- story: ""
- research_question: ""
+ story: "Pretraining the three models such that when we combine them together, and evaluate the input (shirt, pose, person), the output is a novel fashion-view"
+ research_question: "Can we synthesize a novel view fashion try-on to recreate a smart mirror using AI, instead of AR"
  machine:
-  computer: "rail" # [laptop, rail, cluster]
+  computer: "cluster" # [laptop, rail, cluster]
   gpu: "GTX 1060" # [GTX 1060, RTX 2060]
  type: "pretrain_nerf" # Branch name
  experiment_name: "Pretrained Neural Radiance Field"
  experiment_description: "Perform simple neural radiance field. Currently, I am struggling to determine why the images are either just black or blurry"
  experiment_stragey: "Pretrain NeRF so that we can combine evaluations"
  tags: "Neural Radiance, Super-Resolution"
- device: 'cpu' # [cpu, cuda]
+ device: 'cuda:0' # [cpu, cuda, cuda:0]
 
 checkpoint_facts:
  load_checkpoint: False

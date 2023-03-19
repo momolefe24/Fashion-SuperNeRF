@@ -76,7 +76,7 @@ for epoch in range(epochs):
         ################################
 
         # if index % 500 == 0:
-        if index == 0:
+        if index % 500 ==  0:
             iters = index + epoch * batches + 1
             writer.add_scalar("NeRF", nerf_loss.item(), iters)
             writer.add_scalar("NeRF_Fine", nerf_fine_loss.item(), iters)
