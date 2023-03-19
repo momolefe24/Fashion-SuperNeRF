@@ -2,29 +2,36 @@
 # ------------------- Experiment Facts
 experiment_facts:
  experiment_number: 1
- type: "ESRGAN_With_Penalty" # [ESRGAN, NeRF, Combined_NeRF_SR Viton, FashionNeRF]
- root_path: "./"
  run_number: 1
- experiment_name: "ESRGAN With Penalty"
- experiment_description: "In this experiment, we first trained the esrresnet and saved the checkpoints in experiment_01_run_01 and copied it into the esrgan_with_penalty repository. We now call train_fn() instead of train_generator function, which will implement esrgan with gradient penalty"
- cuda: True
+ root_path: "./"
+ story: ""
+ research_question: ""
+ machine:
+  computer: "rail" # [laptop, rail, cluster]
+  gpu: "GTX 1060" # [GTX 1060, RTX 2060]
+ type: "pretrain_esrgan_without_penalty" # Branch name
+ experiment_name: "Pretrained Enhanced Super-Resolution"
+ experiment_description: "Perform super-resolution on eric by performing bicbuic downsampling on HR images"
+ experiment_stragey: "Enhance the LR output of a NeRF using a pretrained super-resolution network so that we can prepare the data for virtual try-on"
+ tags: "Super-Resolution"
+ device: 'cuda:0' # [cpu, cuda]
 
 
 # ------------------- Checkpoint Facts
 checkpoint_facts:
- load_checkpoint: True
+ load_checkpoint: False
  save_checkpoint: True
  root_path: "Checkpoints"
- NeRF:
-  checkpoint_nerf: "NeRF.pth"
  ESRGAN:
   checkpoint_gen: "esrgan_gen.pth.tar"
   checkpoint_esrresnet: "esrresnet_gen.pth.tar"
-  best_checkpoint_gen: "best_esrgan_gen.pth.tar"
-  load_esrresnet: True
+  best_checkpoint_gen: "g-best.pth"
+  best_checkpoint_disc: "d-best.pth"
+  load_esrresnet: False
   load_esrgan: False
   load_p_best: False
-  load_g_best: True
+  load_g_best: False
+  load_d_best: False
   esrgan: False
   vgg: False
   checkpoint_disc: "esrgan_disc.pth.tar"

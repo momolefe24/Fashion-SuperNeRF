@@ -1,24 +1,12 @@
 from config import *
-from dataset import ImageDataset
+from Dataset.dataset import ImageDataset
 from torch.utils.data import DataLoader
-import torchvision
 from ESRGAN.model import Generator, Discriminator, initialize_weights, ContentLoss
-from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
-import torch.optim as optim
-from torch import nn
-from torch.utils.tensorboard import SummaryWriter
-def load_without_penalty_checkpoint():
-    print("=>Loading checkpoint")
-    checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['best_checkpoint_gen'])
-    model = Generator().to(device)
-    state_dict = torch.load(checkpoint_file, map_location=device)
-    model.load_state_dict(state_dict)
-    return model
 
 generator = Generator().to(device)
 discriminator = Discriminator().to(device)
 best_psnr_value = 0.0
-writer = SummaryWriter(paths_[-1])
+
 
 # Optimizers
 p_optimizer = optim.Adam(generator.parameters(), esrgan_facts['p_optimizer_lr'], eval(esrgan_facts['betas']))
@@ -34,45 +22,13 @@ g_scheduler = MultiStepLR(g_optimizer, list(map(int, milestones)), 0.5)         
 
 g_scaler = torch.cuda.amp.GradScaler()
 d_scaler = torch.cuda.amp.GradScaler()
+
+
 # Loss Functions
 PSNR_CRITERION = nn.MSELoss().to(device)
 PIXEL_CRITERION = nn.L1Loss().to(device)
 CONTENT_CRITERION = ContentLoss().to(device)
 ADVERSARIAL_CRITERION = nn.BCELoss().to(device)
-
-# Loading dataset
-eric_dataset = ImageDataset()
-eric_dataset.__getitem__(0)
-eric_loader = DataLoader(eric_dataset, training_facts['batch_size'], shuffle=True, pin_memory=True)
-
-eric_valid_dataset = ImageDataset(mode="valid")
-eric_valid_dataset.__getitem__(0)
-eric_valid_loader = DataLoader(eric_valid_dataset, training_facts['batch_size'], shuffle=True, pin_memory=True)
-
-if checkpoint_facts['ESRGAN']['load_esrresnet']:
-    checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_esrresnet'])
-    load_checkpoint(checkpoint_file, generator, p_optimizer, esrgan_facts['learning_rate'])
-
-if checkpoint_facts['ESRGAN']['load_esrgan']:
-    checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_gen'])
-    disc_checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_disc'])
-    load_checkpoint(
-        checkpoint_file,
-        generator,
-        g_optimizer,
-        esrgan_facts['learning_rate'],
-        esrgan=True
-    )
-    load_checkpoint(
-        disc_checkpoint_file, discriminator,d_optimizer,esrgan_facts['learning_rate']
-    )
-
-if checkpoint_facts['ESRGAN']['load_p_best']:
-    checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_gen'])
-    print("==========>Loading the latest model from {}".format(checkpoint_file))
-    generator.load_state_dict(torch.load(checkpoint_file))
-
-"""Train"""
 
 def train_generator(gen, optimizer_g, loader, epoch):
     batches = len(loader)
@@ -99,6 +55,7 @@ def train_generator(gen, optimizer_g, loader, epoch):
 
             step += 1
         save_checkpoint(generator, optimizer_g, os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_gen']))
+
 
 def train_adversarial(gen, disc, loader, epoch):
     batches = len(loader)
@@ -165,11 +122,13 @@ def train_adversarial(gen, disc, loader, epoch):
             writer.add_image("Ground Truth", img_grid_real, global_step=iters)
             writer.add_image("Fake Image", img_grid_fake, global_step=iters)
             print(f"Train stage: adversarial "
-                  f"Epoch[{epoch + 1:04d}/{EPOCHS:04d}]({index + 1:05d}/{batches:05d}) "
+                  f"Epoch[{epoch + 1:04d}/{esrgan_facts['start_p_epoch']:04d}]({index + 1:05d}/{batches:05d}) "
                   f"D Loss: {d_loss.item():.6f} G Loss: {g_loss.item():.6f} "
                   f"D(HR): {d_hr:.6f} D(SR1)/D(SR2): {d_sr1:.6f}/{d_sr2:.6f}.")
 
         step += 1
+
+
 def validate(gen, valid_dataloader, epoch, stage):
     batches = len(valid_dataloader)
     gen.eval()
@@ -193,7 +152,6 @@ def validate(gen, valid_dataloader, epoch, stage):
         writer.add_image("Validation/Fake Image", img_grid_fake, global_step=epoch + 1)
         print(f"Valid stage: {stage} Epoch[{epoch + 1:04d}] avg PSNR: {avg_psnr_value:.2f}.\n")
     return avg_psnr_value
-
 
 def train_fn(
         loader,
@@ -248,6 +206,52 @@ def train_fn(
             writer.add_image("Fake Image", img_grid_fake, global_step=tb_step)
 
     return tb_step
+
+def load_without_penalty_checkpoint():
+    print("=>Loading checkpoint")
+    checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['best_checkpoint_gen'])
+    model = Generator().to(device)
+    state_dict = torch.load(checkpoint_file, map_location=device)
+    model.load_state_dict(state_dict)
+    return model
+
+# Loading dataset
+eric_dataset = ImageDataset()
+eric_dataset.__getitem__(0)
+eric_loader = DataLoader(eric_dataset, training_facts['batch_size'], shuffle=True, pin_memory=True)
+
+eric_valid_dataset = ImageDataset(mode="valid")
+eric_valid_dataset.__getitem__(0)
+eric_valid_loader = DataLoader(eric_valid_dataset, training_facts['batch_size'], shuffle=True, pin_memory=True)
+
+if checkpoint_facts['ESRGAN']['load_esrresnet']:
+    checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_esrresnet'])
+    load_checkpoint(checkpoint_file, generator, p_optimizer, esrgan_facts['learning_rate'])
+
+if checkpoint_facts['ESRGAN']['load_esrgan']:
+    checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_gen'])
+    disc_checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['checkpoint_disc'])
+    load_checkpoint(
+        checkpoint_file,
+        generator,
+        g_optimizer,
+        esrgan_facts['learning_rate'],
+        esrgan=True
+    )
+    load_checkpoint(
+        disc_checkpoint_file, discriminator,d_optimizer,esrgan_facts['learning_rate']
+    )
+
+if checkpoint_facts['ESRGAN']['load_g_best']:
+    checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['best_checkpoint_gen'])
+    print("==========>Loading the latest model from {}".format(checkpoint_file))
+    generator.load_state_dict(torch.load(checkpoint_file))
+
+if checkpoint_facts['ESRGAN']['load_d_best']:
+    checkpoint_file = os.path.join(paths_[1], checkpoint_facts['ESRGAN']['best_checkpoint_disc'])
+    print("==========>Loading the latest model from {}".format(checkpoint_file))
+    discriminator.load_state_dict(torch.load(checkpoint_file))
+
 
 """ Training """
 tb_step = 0

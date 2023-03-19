@@ -1,15 +1,38 @@
-import argparse
 import logging
 import sys
 import os
-import numpy as np
+import imageio
+import json
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+import glob
+import cv2
 import yaml
-import torch
+
+# Data-Science Libraries
+import numpy as np
 from PIL import Image
+
+# Pytorch imports
+import torch
+from torch.utils.data import Dataset, DataLoader, ConcatDataset
+import torch.optim as optim
+from torch import nn
+from torch.utils.tensorboard import SummaryWriter
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision.transforms as transforms
+import torchvision
 from torchvision.utils import save_image
+import torchvision.transforms.functional as TF
+from torch.utils.tensorboard import SummaryWriter
+import torchvision.models as models
+from torch import Tensor
+from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
+
+# Albumentations
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+
 
 logging.basicConfig(
 format="%(asctime)s %(levelname)s %(message)s",
@@ -122,82 +145,6 @@ def get_parser():
     )
     return parser
 
-
-# def plot_without_penalty_examples(model, low_res_folder="lr_training_images", verbose=True):
-#     model.eval()
-#     model.half()
-#     image_dir = root_folder.format(low_res_folder)
-#     files = os.listdir(image_dir)
-#     for file in files:
-#         image_name = image_dir + "/" + file
-#         image = Image.open(image_name)  # default_images="validation_images/"
-#         with torch.no_grad():
-#             upscaled_img = model(test_transform(image=np.asarray(image))['image'].unsqueeze(0).to(config.DEVICE))
-#         SAVE_DIR = config.SAVE_SAMPLES.format(low_res_folder)
-#         if verbose:
-#             print("=========>Saving The Image Inside {}".format(SAVE_DIR))
-#         if not os.path.exists(SAVE_DIR):  #
-#             os.makedirs(SAVE_DIR)
-#         save_image(upscaled_img * 0.5 + 0.5, f"{SAVE_DIR}/{file}")
-
-
-# def plot_examples(gen, epoch=None, idx=None, training_name=None, root_folder=config.DEFAULT_ROOT_DIR,
-#                   low_res_folder="training_images", format=False, verbose=True):
-#     image_dir = root_folder.format(low_res_folder)
-#     files = os.listdir(image_dir)
-#     gen.eval()
-#     for file in files:
-#         image_name = image_dir + "/" + file
-#         image = Image.open(image_name)  # default_images="validation_images/"
-#         with torch.no_grad():
-#             upscaled_img = gen(
-#                 test_transform(image=np.asarray(image))['image'].unsqueeze(0).to(device)
-#             )
-#         if type(epoch) == type(None) and type(idx) == type(None):
-#             SAVE_DIR = config.SAVE_RESULT_FOLDER.format(config.MODEL_NAME, low_res_folder)
-#             if verbose:
-#                 print("=========>Saving The Image Inside {}".format(SAVE_DIR))
-#             if not os.path.exists(SAVE_DIR):  #
-#                 os.makedirs(SAVE_DIR)
-#             save_image(upscaled_img * 0.5 + 0.5, f"{SAVE_DIR}/{file}")
-#         else:
-#             if type(training_name) == type(None):
-#                 SAVE_DIR = config.SAVE_RESULT_FOLDER.format(config.MODEL_NAME, config.SAVE_DIRECTORY_DURING_TRAINING)
-#             else:
-#                 SAVE_DIR = config.SAVE_RESULT_FOLDER.format(config.MODEL_NAME,
-#                                                             config.FORMAT_SAVE_DIRECTORY_DURING_TRAINING.format(
-#                                                                 training_name))
-#             if verbose:
-#                 print("=========>Saving The Image Inside {}".format(SAVE_DIR))
-#             if not os.path.exists(SAVE_DIR):  #
-#                 os.makedirs(SAVE_DIR)
-#             save_image(upscaled_img * 0.5 + 0.5, f"{SAVE_DIR}/epoch_{epoch}_idx_{idx}_{file}")
-#     gen.train()
-
-
-# def test_models(gen, folder, save_folder, epoch=None, idx=None, folder_name="BSDS100", verbose=True):
-#     files = os.listdir(folder)
-#     SAVE_RESULT_FOLDER = save_folder
-#     gen.eval()
-#     for file_ in files:
-#         image_name = folder + "/" + file_
-#         image = Image.open(image_name)  # default_images="validation_images/"
-#         with torch.no_grad():
-#             upscaled_img = gen(
-#                 config.test_transform(image=np.asarray(image))['image'].unsqueeze(0).to(config.DEVICE)
-#             )
-#         if type(epoch) == type(None) and type(idx) == type(None):
-#             if verbose:
-#                 print("=========>Saving The Image Inside {}".format(SAVE_RESULT_FOLDER))
-#             if not os.path.exists(SAVE_RESULT_FOLDER):  #
-#                 os.makedirs(SAVE_RESULT_FOLDER)
-#             if not os.path.exists(SAVE_RESULT_FOLDER + "/" + folder_name):
-#                 print("===========> Creating Folder ", SAVE_RESULT_FOLDER + "/" + folder_name)
-#                 os.makedirs(SAVE_RESULT_FOLDER + "/" + folder_name)
-#             save_image(upscaled_img * 0.5 + 0.5, f"{SAVE_RESULT_FOLDER}/{folder_name}/{file_}")
-#     gen.train()
-
-
 args = get_parser().parse_args()
 yaml_filepath = args.filename
 with open(yaml_filepath, "r") as stream:
@@ -246,7 +193,6 @@ transform_lambda = lambda res: A.Compose(
     ]
 )
 
-# highres_transform = transform_lambda(high_res)
 highres_transform = A.Compose(
     [A.Normalize(mean=[0, 0, 0], std=[1, 1, 1]), ToTensorV2()]
 )
@@ -273,3 +219,12 @@ test_transform = A.Compose(
         ToTensorV2(),
     ]
 )
+
+"""
+Summary Creation
+"""
+writer = SummaryWriter(paths_[-1])
+
+"""
+Model Creation
+"""

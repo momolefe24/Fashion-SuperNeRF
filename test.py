@@ -1,10 +1,9 @@
 from config import *
-from dataset import ImageDataset
+from Dataset.dataset import ImageDataset
 from torch.utils.data import DataLoader
-from ESRGAN.loss import VGGLoss
-from ESRGAN.model import Generator, Discriminator, initialize_weights
-from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
-import torch.optim as optim
+from ESRGAN.model import Generator, Discriminator
+
+
 def load_without_penalty_checkpoint():
     print("=>Loading checkpoint")
     checkpoint_file = os.path.join(paths_[1], checkpoint_facts[experiment_type]['best_checkpoint_gen'])
