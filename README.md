@@ -1,1 +1,2 @@
 # Original NeRF
+## Changes 
