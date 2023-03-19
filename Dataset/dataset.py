@@ -21,8 +21,8 @@ class NeRF_Dataset(Dataset):
             current_frame = os.path.join(self.model_dir, frame['file_path'] + '.png')
             images.append(imageio.imread(current_frame))
             poses.append(np.array(frame['transform_matrix']))
-        # self.images = (np.array(images) / 255.).astype(np.float32)  # Keep all 4 channels (rgba)
-        self.images = np.array(images)
+        self.images = (np.array(images) / 255.).astype(np.float32)  # Keep all 4 channels (rgba)
+        # self.images = np.array(images)
         self.poses = np.array(poses).astype(np.float32)
         self.H, self.W = images[0].shape[:2]
         self.camera_angle_x = float(json_data['camera_angle_x'])
@@ -34,7 +34,8 @@ class NeRF_Dataset(Dataset):
 
     def __getitem__(self, item): # get_batch_rays
         target = self.images[item] # image
-        rgb = transform(image=target[..., :3])['image']
+        # rgb = transform(image=target[..., :3])['image']
+        rgb = depth_transform(image=target[..., :3])['image']
         if not nerf_data['white_background']:
             target = rgb.permute(1, 2, 0)
         else:

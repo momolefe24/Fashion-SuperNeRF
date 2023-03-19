@@ -3,7 +3,7 @@ from config import *
 import numpy as np
 from .embedding import get_embeddings
 
-device = 'cuda' if torch.cuda.is_available() else "cpu"
+# device = 'cuda' if torch.cuda.is_available() else "cpu"
 
 
 def get_rays(H, W, K, c2w):

@@ -27,8 +27,6 @@ from torch.utils.tensorboard import SummaryWriter
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-device = 'cuda' if torch.cuda.is_available() else "cpu"
-
 logging.basicConfig(
 format="%(asctime)s %(levelname)s %(message)s",
 level=logging.DEBUG,
@@ -158,6 +156,9 @@ transform = A.Compose(
     ]
 )
 
+
 depth_transform = A.Compose(
     [ ToTensorV2()]
 )
+
+device = experiment_facts['device']

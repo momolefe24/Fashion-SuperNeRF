@@ -4,10 +4,17 @@ experiment_facts:
  experiment_number: 1
  run_number: 1
  root_path: "./"
+ story: ""
+ research_question: ""
+ machine:
+  computer: "rail" # [laptop, rail, cluster]
+  gpu: "GTX 1060" # [GTX 1060, RTX 2060]
  type: "pretrain_nerf" # Branch name
  experiment_name: "Pretrained Neural Radiance Field"
- experiment_description: "Perform simple neural radiance field"
- cuda: True
+ experiment_description: "Perform simple neural radiance field. Currently, I am struggling to determine why the images are either just black or blurry"
+ experiment_stragey: "Pretrain NeRF so that we can combine evaluations"
+ tags: "Neural Radiance, Super-Resolution"
+ device: 'cpu' # [cpu, cuda]
 
 checkpoint_facts:
  load_checkpoint: False

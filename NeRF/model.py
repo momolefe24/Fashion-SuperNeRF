@@ -113,7 +113,7 @@ class NeRF_Fine(nn.Module):
         resampled_embedded = get_embeddings(resampled_points, viewdirs)
         return resampled_embedded, resampled_points, z_vals, z_std, rays_o, rays_d
 
-    def forward(self, viewdirs, weights, z_vals, rays_o, rays_d):  # input is target & pose
+    def forward(self, viewdirs, weights, z_vals, rays_o, rays_d, eval=True):  # input is target & pose
         x, resampled_points, z_vals, z_std, rays_o, rays_d = self.preprocess(viewdirs, weights, z_vals, rays_o,
                                                                              rays_d)
         x, resampled_points, z_vals = x.to(device), resampled_points.to(device), z_vals.to(z_vals)
@@ -142,4 +142,8 @@ class NeRF_Fine(nn.Module):
         outputs = torch.reshape(outputs, list(resampled_points.shape[:-1]) + [outputs.shape[-1]]).to(device)
         fine_rgb_map, fine_disp_map, fine_acc_map, fine_weights, fine_depth_map = volume_rendering(outputs, z_vals,
                                                                                                    rays_d)
+        if eval:
+            fine_rgb_map = torch.reshape(fine_rgb_map, [100, 100, 3])
+            fine_disp_map = torch.reshape(fine_disp_map, [100, 100])
+            fine_acc_map = torch.reshape(fine_acc_map, [100, 100])
         return fine_rgb_map, fine_disp_map, fine_acc_map, fine_weights, fine_depth_map
