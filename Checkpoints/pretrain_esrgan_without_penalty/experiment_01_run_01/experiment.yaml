@@ -1,0 +1,149 @@
+checkpoint_facts:
+  ESRGAN:
+    best_checkpoint_disc: d-best.pth
+    best_checkpoint_gen: g-best.pth
+    checkpoint_disc: esrgan_disc.pth.tar
+    checkpoint_esrresnet: esrresnet_gen.pth.tar
+    checkpoint_gen: esrgan_gen.pth.tar
+    esrgan: false
+    load_d_best: false
+    load_esrgan: false
+    load_esrresnet: false
+    load_g_best: false
+    load_p_best: false
+    vgg: false
+  VITON:
+    checkpoint_alias: alias_final.pth.tar
+    checkpoint_gmm: gmm_final.pth.tar
+    checkpoint_model: viton.pth.tar
+    checkpoint_seg: seg_final.pth.tar
+  load_checkpoint: false
+  root_path: Checkpoints
+  save_checkpoint: true
+dataset_facts:
+  dataset_type: blender
+  image:
+    channels: 3
+    hr_shape: (3,1024,768)
+    lr_shape: (3,100,100)
+  model: eric
+  root_path: Dataset
+  script_path: dataset.py
+  transforms:
+    mean:
+    - 0.485
+    - 0.456
+    - 0.406
+    std:
+    - 0.229
+    - 0.224
+    - 0.225
+experiment_facts:
+  device: cuda:0
+  experiment_description: Perform super-resolution on eric by performing bicbuic downsampling
+    on HR images
+  experiment_name: Pretrained Enhanced Super-Resolution
+  experiment_number: 1
+  experiment_stragey: Enhance the LR output of a NeRF using a pretrained super-resolution
+    network so that we can prepare the data for virtual try-on
+  machine:
+    computer: cluster
+    gpu: GTX 1060
+  research_question: ''
+  root_path: ./
+  run_number: 1
+  story: ''
+  tags: Super-Resolution
+  type: pretrain_esrgan_without_penalty
+model_facts:
+  in_channels: 3
+  script_path:
+    NeRF: NeRF/model.py
+    SR: ESRGAN/model.py
+    VITON: VITON/model.py
+results_facts:
+  basedir: ./logs
+  experiment_number: 1
+  root_path: Results
+  run_number: 1
+  training_evaluation:
+    training_images: ''
+    training_loss: ''
+summary_facts:
+  ESRGAN:
+    ground_truth: ground_truth
+    sr: sr
+  root_path: Summary
+training_facts:
+  ESRGAN:
+    adaptive_average_pool: (12, 12)
+    beta1: 0.9
+    beta2: 0.999
+    betas: (0.9, 0.999)
+    content_weight: 1.0
+    d_optimizer_lr: 0.0001
+    decay_epoch: 100
+    epochs: 465
+    features:
+    - 64
+    - 64
+    - 128
+    - 128
+    - 256
+    - 256
+    - 512
+    - 512
+    - 1024
+    - 1024
+    filters: 64
+    g_optimizer_lr: 0.0001
+    high_res: 256
+    initialized_weight_scale: 0.1
+    interpolation_mode: nearest
+    lambda_adv: 5e-3
+    lambda_gp: 10
+    leaky_relu: 0.2
+    learning_rate: 0.0002
+    num_res_blocks: 8
+    p_epochs: 1162
+    p_optimizer_lr: 0.0002
+    pixel_weight: 1e-2
+    residual_in_residual_dense_block: 0.2
+    start_p_epoch: 0
+    upscale_factor: 10
+    upscaling_factor: 8
+  NeRF:
+    N_importance: 128
+    N_rand: 1024
+    N_samples: 12
+    betas: (0.5, 0.999)
+    dynamic_range: 255
+    epochs: 5000
+    far: 6.0
+    fc: 0.8
+    half_res: false
+    learning_rate: 2e-4
+    lrate_decay: 500
+    near: 2.0
+    no_batching: true
+    num_layers: 8
+    pos_encode_dims: 16
+    precrop_frec: 0.5
+    precrop_iters: 500
+    use_viewdirs: true
+    white_bkgd: false
+  VITON:
+    alias_generator:
+      ngf: 64
+      norm_G: spectralaliasinstance
+      num_upsampling_layers: most
+    display_freq: 1
+    epochs: 2000
+    grid_size: 5
+    init_type: xavier
+    init_variance: 0.02
+    learning_rate: 1.0e-05
+    semantic_nc: 13
+  batch_size: 4
+  num_workers: 1
+  script_path: train.py

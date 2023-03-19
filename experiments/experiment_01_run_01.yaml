@@ -7,7 +7,7 @@ experiment_facts:
  story: ""
  research_question: ""
  machine:
-  computer: "rail" # [laptop, rail, cluster]
+  computer: "cluster" # [laptop, rail, cluster]
   gpu: "GTX 1060" # [GTX 1060, RTX 2060]
  type: "pretrain_esrgan_without_penalty" # Branch name
  experiment_name: "Pretrained Enhanced Super-Resolution"

@@ -1,12 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=With_ESRGAN_with_penalty
+#SBATCH --job-name=pretrain_esrgan_without_penalty
 #SBATCH -N 1
 #SBATCH -n 14 
+#SBATCH -w mscluster70
 #SBATCH -t 72:00:00
-#SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/esrgan.with.penalty.%N.%j.out"
+#SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/pretrain_esrgan_without_penalty/pretrain.esrgan.without.penalty.%N.%j.out"
 #SBATCH --ntasks=1
 #SBATCH --partition=bigbatch
-#SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/esrgan.with.penalty.%N.%j.err"
+#SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/pretrain_esrgan_without_penalty/pretrain.esrgan.without.penalty.%N.%j.err"
 
 
 echo ------------------------------------------------------
@@ -23,4 +24,4 @@ echo ------------------------------------------------------
 /bin/hostname
 source ~/.bashrc
 conda activate NeRF
-python3 esrgan.py -f experiments/experiment_01_run_01.yaml
+python3 main.py -f experiments/experiment_01_run_01.yaml

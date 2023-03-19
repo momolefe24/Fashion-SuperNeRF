@@ -1,0 +1,10 @@
+------------------------------------------------------
+Job is running on node  mscluster70------------------------------------------------------
+SLURM: sbatch is running on mscluster-login1.ms.wits.ac.za
+SLURM: job ID is 19461
+SLURM: submit directory is /home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/pretrain_esrgan_without_penalty
+SLURM: number of nodes allocated is 1
+SLURM: number of cores is 1
+SLURM: job name is pretrain_esrgan_without_penalty
+------------------------------------------------------
+mscluster70.ms.wits.ac.za
