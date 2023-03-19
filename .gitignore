@@ -1,4 +1,6 @@
-Dataset/
+Dataset/nerf_liff_data
+Dataset/nerf_people
+Dataset/nerf_synthetic
 Results/
 Summary/
 **/.ipynb_checkpoints
