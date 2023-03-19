@@ -7,23 +7,21 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.utils
 from tqdm import tqdm, trange
 
 import matplotlib.pyplot as plt
 
 from run_nerf_helpers import *
-
-from load_llff import load_llff_data
-from load_deepvoxels import load_dv_data
 from load_blender import load_blender_data
-from load_LINEMOD import load_LINEMOD_data
+
+from config import *
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 np.random.seed(0)
 DEBUG = False
 
-
+writer = SummaryWriter(paths_[-1])
 def batchify(fn, chunk):
     """Constructs a version of 'fn' that applies to smaller batches.
     """
@@ -134,7 +132,7 @@ def render(H, W, K, chunk=1024*32, rays=None, c2w=None, ndc=True,
     return ret_list + [ret_dict]
 
 
-def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedir=None, render_factor=0):
+def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedir=None, render_factor=0, epoch=9):
 
     H, W, focal = hwf
 
@@ -166,10 +164,15 @@ def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedi
         if savedir is not None:
             rgb8 = to8b(rgbs[-1])
             filename = os.path.join(savedir, '{:03d}.png'.format(i))
-            imageio.imwrite(filename, rgb8)
+            #imageio.imwrite(filename, rgb8)
 
 
     rgbs = np.stack(rgbs, 0)
+    prediction0 = torch.Tensor(rgbs[0]).unsqueeze(0)
+    ground_truth0 = torch.Tensor(gt_imgs[0]).unsqueeze(0)
+    concat = torch.cat([ground_truth0, prediction0], 0).permute(0, 3, 1, 2)
+    img_grid = torchvision.utils.make_grid(concat, normalize=True)
+    writer.add_image("NeRF Images", img_grid, global_step=epoch + 1)
     disps = np.stack(disps, 0)
 
     return rgbs, disps
@@ -275,7 +278,7 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     raw2alpha = lambda raw, dists, act_fn=F.relu: 1.-torch.exp(-act_fn(raw)*dists)
 
     dists = z_vals[...,1:] - z_vals[...,:-1]
-    dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[...,:1].shape)], -1)  # [N_rays, N_samples]
+    dists = torch.cat([dists, torch.Tensor([1e10]).to(device).expand(dists[...,:1].shape)], -1)  # [N_rays, N_samples]
 
     dists = dists * torch.norm(rays_d[...,None,:], dim=-1)
 
@@ -290,9 +293,9 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
             noise = np.random.rand(*list(raw[...,3].shape)) * raw_noise_std
             noise = torch.Tensor(noise)
 
-    alpha = raw2alpha(raw[...,3] + noise, dists)  # [N_rays, N_samples]
+    alpha = raw2alpha(raw[...,3] + noise, dists).to(device)  # [N_rays, N_samples]
     # weights = alpha * tf.math.cumprod(1.-alpha + 1e-10, -1, exclusive=True)
-    weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)), 1.-alpha + 1e-10], -1), -1)[:, :-1]
+    weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)).to(device), 1.-alpha + 1e-10], -1), -1)[:, :-1]
     rgb_map = torch.sum(weights[...,None] * rgb, -2)  # [N_rays, 3]
 
     depth_map = torch.sum(weights * z_vals, -1)
@@ -355,6 +358,7 @@ def render_rays(ray_batch,
     near, far = bounds[...,0], bounds[...,1] # [-1,1]
 
     t_vals = torch.linspace(0., 1., steps=N_samples)
+    t_vals = t_vals.to(device)
     if not lindisp:
         z_vals = near * (1.-t_vals) + far * (t_vals)
     else:
@@ -375,7 +379,7 @@ def render_rays(ray_batch,
             np.random.seed(0)
             t_rand = np.random.rand(*list(z_vals.shape))
             t_rand = torch.Tensor(t_rand)
-
+        t_rand = t_rand.to(device)
         z_vals = lower + (upper - lower) * t_rand
 
     pts = rays_o[...,None,:] + rays_d[...,None,:] * z_vals[...,:,None] # [N_rays, N_samples, 3]
@@ -422,15 +426,23 @@ def config_parser():
 
     import configargparse
     parser = configargparse.ArgumentParser()
-    parser.add_argument('--config', is_config_file=True, 
+    parser.add_argument('--config', is_config_file=True, default="configs/eric.txt",
                         help='config file path')
-    parser.add_argument("--expname", type=str, 
+    parser.add_argument("--expname", type=str, default="original_nerf",
                         help='experiment name')
     parser.add_argument("--basedir", type=str, default='./logs/', 
                         help='where to store ckpts and logs')
-    parser.add_argument("--datadir", type=str, default='./data/llff/fern', 
+    parser.add_argument("--datadir", type=str, default='./data/nerf_people/eric/lr',
                         help='input data directory')
-
+    parser.add_argument(
+        "-f",
+        "--file",
+        dest="filename",
+        default="experiments/experiment_01_run_01.yaml",
+        help="experiment definition file",
+        metavar="FILE",
+        required=True
+    )
     # training options
     parser.add_argument("--netdepth", type=int, default=8, 
                         help='layers in network')
@@ -489,7 +501,7 @@ def config_parser():
                         default=.5, help='fraction of img taken for central crops') 
 
     # dataset options
-    parser.add_argument("--dataset_type", type=str, default='llff', 
+    parser.add_argument("--dataset_type", type=str, default='blender',
                         help='options: llff / blender / deepvoxels')
     parser.add_argument("--testskip", type=int, default=8, 
                         help='will load 1/N images from test/val sets, useful for large datasets like deepvoxels')
@@ -538,35 +550,8 @@ def train():
 
     # Load data
     K = None
-    if args.dataset_type == 'llff':
-        images, poses, bds, render_poses, i_test = load_llff_data(args.datadir, args.factor,
-                                                                  recenter=True, bd_factor=.75,
-                                                                  spherify=args.spherify)
-        hwf = poses[0,:3,-1]
-        poses = poses[:,:3,:4]
-        print('Loaded llff', images.shape, render_poses.shape, hwf, args.datadir)
-        if not isinstance(i_test, list):
-            i_test = [i_test]
 
-        if args.llffhold > 0:
-            print('Auto LLFF holdout,', args.llffhold)
-            i_test = np.arange(images.shape[0])[::args.llffhold]
-
-        i_val = i_test
-        i_train = np.array([i for i in np.arange(int(images.shape[0])) if
-                        (i not in i_test and i not in i_val)])
-
-        print('DEFINING BOUNDS')
-        if args.no_ndc:
-            near = np.ndarray.min(bds) * .9
-            far = np.ndarray.max(bds) * 1.
-            
-        else:
-            near = 0.
-            far = 1.
-        print('NEAR FAR', near, far)
-
-    elif args.dataset_type == 'blender':
+    if args.dataset_type == 'blender':
         images, poses, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip)
         print('Loaded blender', images.shape, render_poses.shape, hwf, args.datadir)
         i_train, i_val, i_test = i_split
@@ -578,31 +563,6 @@ def train():
             images = images[...,:3]*images[...,-1:] + (1.-images[...,-1:])
         else:
             images = images[...,:3]
-
-    elif args.dataset_type == 'LINEMOD':
-        images, poses, render_poses, hwf, K, i_split, near, far = load_LINEMOD_data(args.datadir, args.half_res, args.testskip)
-        print(f'Loaded LINEMOD, images shape: {images.shape}, hwf: {hwf}, K: {K}')
-        print(f'[CHECK HERE] near: {near}, far: {far}.')
-        i_train, i_val, i_test = i_split
-
-        if args.white_bkgd:
-            images = images[...,:3]*images[...,-1:] + (1.-images[...,-1:])
-        else:
-            images = images[...,:3]
-
-    elif args.dataset_type == 'deepvoxels':
-
-        images, poses, render_poses, hwf, i_split = load_dv_data(scene=args.shape,
-                                                                 basedir=args.datadir,
-                                                                 testskip=args.testskip)
-
-        print('Loaded deepvoxels', images.shape, render_poses.shape, hwf, args.datadir)
-        i_train, i_val, i_test = i_split
-
-        hemi_R = np.mean(np.linalg.norm(poses[:,:3,-1], axis=-1))
-        near = hemi_R-1.
-        far = hemi_R+1.
-
     else:
         print('Unknown dataset type', args.dataset_type, 'exiting')
         return
@@ -789,24 +749,24 @@ def train():
         #####           end            #####
 
         # Rest is logging
-        if i%args.i_weights==0:
-            path = os.path.join(basedir, expname, '{:06d}.tar'.format(i))
-            torch.save({
-                'global_step': global_step,
-                'network_fn_state_dict': render_kwargs_train['network_fn'].state_dict(),
-                'network_fine_state_dict': render_kwargs_train['network_fine'].state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-            }, path)
-            print('Saved checkpoints at', path)
+        # if i%args.i_weights==0:
+        #     path = os.path.join(basedir, expname, '{:06d}.tar'.format(i))
+        #     torch.save({
+        #         'global_step': global_step,
+        #         'network_fn_state_dict': render_kwargs_train['network_fn'].state_dict(),
+        #         'network_fine_state_dict': render_kwargs_train['network_fine'].state_dict(),
+        #         'optimizer_state_dict': optimizer.state_dict(),
+        #     }, path)
+        #     print('Saved checkpoints at', path)
 
-        if i%args.i_video==0 and i > 0:
-            # Turn on testing mode
-            with torch.no_grad():
-                rgbs, disps = render_path(render_poses, hwf, K, args.chunk, render_kwargs_test)
-            print('Done, saving', rgbs.shape, disps.shape)
-            moviebase = os.path.join(basedir, expname, '{}_spiral_{:06d}_'.format(expname, i))
-            imageio.mimwrite(moviebase + 'rgb.mp4', to8b(rgbs), fps=30, quality=8)
-            imageio.mimwrite(moviebase + 'disp.mp4', to8b(disps / np.max(disps)), fps=30, quality=8)
+        # if i%args.i_video==0 and i > 0:
+        #     # Turn on testing mode
+        #     with torch.no_grad():
+        #         rgbs, disps = render_path(render_poses, hwf, K, args.chunk, render_kwargs_test)
+        #     print('Done, saving', rgbs.shape, disps.shape)
+        #     moviebase = os.path.join(basedir, expname, '{}_spiral_{:06d}_'.format(expname, i))
+        #     imageio.mimwrite(moviebase + 'rgb.mp4', to8b(rgbs), fps=30, quality=8)
+        #     imageio.mimwrite(moviebase + 'disp.mp4', to8b(disps / np.max(disps)), fps=30, quality=8)
 
             # if args.use_viewdirs:
             #     render_kwargs_test['c2w_staticcam'] = render_poses[0][:3,:4]
@@ -815,18 +775,33 @@ def train():
             #     render_kwargs_test['c2w_staticcam'] = None
             #     imageio.mimwrite(moviebase + 'rgb_still.mp4', to8b(rgbs_still), fps=30, quality=8)
 
-        if i%args.i_testset==0 and i > 0:
+        if i%1 == 0:
+            print("")
+            writer.add_scalar("NeRF", img_loss.item(), i)
+            writer.add_scalar("NeRF_Fine", img_loss0.item(), i)
+            writer.add_scalar("Multi-Task Loss", loss.item(), i)
             testsavedir = os.path.join(basedir, expname, 'testset_{:06d}'.format(i))
             os.makedirs(testsavedir, exist_ok=True)
-            print('test poses shape', poses[i_test].shape)
+            print(f"Train stage: Neural Radiance Field "
+                  f"Epoch[{i + 1:04d}/{N_iters:04d}] PSNR: {psnr.item()} "
+                  f"NeRF: {img_loss.item():.6f} NeRF Fine: {img_loss0.item():.6f} "
+                  f"Multi-Task Loss: {loss:.6f} .")
             with torch.no_grad():
-                render_path(torch.Tensor(poses[i_test]).to(device), hwf, K, args.chunk, render_kwargs_test, gt_imgs=images[i_test], savedir=testsavedir)
+                render_path(torch.Tensor(poses[i_test]).to(device), hwf, K, args.chunk, render_kwargs_test, gt_imgs=images[i_test], savedir=testsavedir, epoch=global_step)
             print('Saved test set')
+            # path = os.path.join(basedir, expname, '{:06d}.tar'.format(i))
+            path = os.path.join(paths_[1], nerf_checkpoint['checkpoint_nerf'] )
+            torch.save({
+                'global_step': global_step,
+                'network_fn_state_dict': render_kwargs_train['network_fn'].state_dict(),
+                'network_fine_state_dict': render_kwargs_train['network_fine'].state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+            }, path)
 
 
     
-        if i%args.i_print==0:
-            tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}")
+        # if i%args.i_print==0:
+        #     tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}")
         """
             print(expname, i, psnr.numpy(), loss.numpy(), global_step.numpy())
             print('iter time {:.05f}'.format(dt))
@@ -873,6 +848,9 @@ def train():
 
 
 if __name__=='__main__':
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    if device == "cuda:":
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    else:
+        torch.set_default_tensor_type('torch.FloatTensor')
 
     train()

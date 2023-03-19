@@ -9,11 +9,11 @@ experiment_facts:
  machine:
   computer: "cluster" # [laptop, rail, cluster]
   gpu: "GTX 1060" # [GTX 1060, RTX 2060]
- type: "pretrain_nerf" # Branch name
+ type: "orginal_nerf" # Branch name
  experiment_name: "Pretrained Neural Radiance Field"
- experiment_description: "Perform simple neural radiance field. Currently, I am struggling to determine why the images are either just black or blurry"
+ experiment_description: "Train the original nerf so that we can debug the one that we simplified. The goal is to attach the output to a super-resolution network"
  experiment_stragey: "Pretrain NeRF so that we can combine evaluations"
- tags: "Neural Radiance, Super-Resolution"
+ tags: "Neural Radiance"
  device: 'cuda:0' # [cpu, cuda, cuda:0]
 
 checkpoint_facts:

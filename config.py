@@ -137,16 +137,7 @@ nerf_embedder = embedding_facts['nerf_embedder']
 nerf_summary = summary_facts['nerf_summary']
 nerf_hyperparameters = hyperparameter_facts['nerf_hyperparameters']
 nerf_model = model_facts['nerf_model']
-H, W = eval(nerf_data['image_shape'])
-
-"""
-LAMBDA FUNTIONS
-"""
-random_choice = lambda input: np.random.choice(input)
-img2mse = lambda x, y : torch.mean((x - y) ** 2)
-mse2psnr = lambda x : -10. * torch.log(x) / torch.log(torch.Tensor([10.]).to(device))
-to8b = lambda x : (255*np.clip(x,0,1)).astype(np.uint8)
-
+# H, W = eval(nerf_data['image_shape'])
 
 """TRANSFORMATIONS"""
 transform = A.Compose(
