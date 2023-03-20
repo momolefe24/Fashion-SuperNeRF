@@ -2,7 +2,7 @@
 # ------------------- Experiment Facts
 experiment_facts:
  experiment_number: 1
- run_number: 1
+ run_number: 2
  root_path: "./"
  story: "Pretraining the three models such that when we combine them together, and evaluate the input (shirt, pose, person), the output is a novel fashion-view"
  research_question: "Can we synthesize a novel view fashion try-on to recreate a smart mirror using AI, instead of AR"
@@ -17,7 +17,7 @@ experiment_facts:
  device: 'cuda:0' # [cpu, cuda, cuda:0]
 
 checkpoint_facts:
- load_checkpoint: False
+ load_checkpoint: True
  save_checkpoint: True
  root_path: "Checkpoints"
  nerf_checkpoints:

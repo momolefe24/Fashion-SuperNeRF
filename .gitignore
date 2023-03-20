@@ -3,3 +3,5 @@ data/
 Summary/
 Results/
 Checkpoints/
+**/.ipynb_checkpoints
+**/__pycache__

@@ -1,0 +1,30 @@
+------------------------------------------------------
+Job is running on node  mscluster70------------------------------------------------------
+SLURM: sbatch is running on mscluster-login1.ms.wits.ac.za
+SLURM: job ID is 19502
+SLURM: submit directory is /home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/original_nerf
+SLURM: number of nodes allocated is 1
+SLURM: number of cores is 1
+SLURM: job name is original_nerf
+------------------------------------------------------
+mscluster70.ms.wits.ac.za
+Mon Mar 20 12:45:18 2023       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 525.78.01    Driver Version: 525.78.01    CUDA Version: 12.0     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  NVIDIA GeForce ...  Off  | 00000000:17:00.0 Off |                  N/A |
+|  0%   42C    P8    25W / 350W |      1MiB / 24576MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+

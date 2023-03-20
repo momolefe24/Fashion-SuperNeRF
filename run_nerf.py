@@ -143,6 +143,7 @@ def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedi
         focal = focal/render_factor
 
     rgbs = []
+    fine_rgbs = []
     disps = []
 
     t = time.time()
@@ -150,7 +151,9 @@ def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedi
         print(i, time.time() - t)
         t = time.time()
         rgb, disp, acc, _ = render(H, W, K, chunk=chunk, c2w=c2w[:3,:4], **render_kwargs)
+        fine_rgb = _['rgb0']
         rgbs.append(rgb.cpu().numpy())
+        fine_rgbs.append(fine_rgb.cpu().numpy())
         disps.append(disp.cpu().numpy())
         if i==0:
             print(rgb.shape, disp.shape)
@@ -168,9 +171,10 @@ def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedi
 
 
     rgbs = np.stack(rgbs, 0)
-    prediction0 = torch.Tensor(rgbs[0]).unsqueeze(0)
+    prediction0 = torch.Tensor(to8b(rgbs[0])).unsqueeze(0)
+    fine_prediction0 = torch.Tensor(to8b(fine_rgbs[0])).unsqueeze(0)
     ground_truth0 = torch.Tensor(gt_imgs[0]).unsqueeze(0)
-    concat = torch.cat([ground_truth0, prediction0], 0).permute(0, 3, 1, 2)
+    concat = torch.cat([ground_truth0, prediction0, fine_prediction0], 0).permute(0, 3, 1, 2)
     img_grid = torchvision.utils.make_grid(concat, normalize=True)
     writer.add_image("NeRF Images", img_grid, global_step=epoch + 1)
     disps = np.stack(disps, 0)
@@ -216,24 +220,16 @@ def create_nerf(args):
     ##########################
 
     # Load checkpoints
-    if args.ft_path is not None and args.ft_path!='None':
-        ckpts = [args.ft_path]
-    else:
-        ckpts = [os.path.join(basedir, expname, f) for f in sorted(os.listdir(os.path.join(basedir, expname))) if 'tar' in f]
+    if checkpoint_facts['load_checkpoint']:
+      ckpt = os.path.join(paths_[1], nerf_checkpoint['checkpoint_nerf'])
+      ckpt = torch.load(ckpt_path)
+	start = ckpt['global_step']
+	optimizer.load_state_dict(ckpt['optimizer_state_dict'])
 
-    print('Found ckpts', ckpts)
-    if len(ckpts) > 0 and not args.no_reload:
-        ckpt_path = ckpts[-1]
-        print('Reloading from', ckpt_path)
-        ckpt = torch.load(ckpt_path)
-
-        start = ckpt['global_step']
-        optimizer.load_state_dict(ckpt['optimizer_state_dict'])
-
-        # Load model
-        model.load_state_dict(ckpt['network_fn_state_dict'])
-        if model_fine is not None:
-            model_fine.load_state_dict(ckpt['network_fine_state_dict'])
+	# Load model
+	model.load_state_dict(ckpt['network_fn_state_dict'])
+	if model_fine is not None:
+	 model_fine.load_state_dict(ckpt['network_fine_state_dict'])
 
     ##########################
 
@@ -745,37 +741,9 @@ def train():
         ################################
 
         dt = time.time()-time0
-        # print(f"Step: {global_step}, Loss: {loss}, Time: {dt}")
-        #####           end            #####
 
-        # Rest is logging
-        # if i%args.i_weights==0:
-        #     path = os.path.join(basedir, expname, '{:06d}.tar'.format(i))
-        #     torch.save({
-        #         'global_step': global_step,
-        #         'network_fn_state_dict': render_kwargs_train['network_fn'].state_dict(),
-        #         'network_fine_state_dict': render_kwargs_train['network_fine'].state_dict(),
-        #         'optimizer_state_dict': optimizer.state_dict(),
-        #     }, path)
-        #     print('Saved checkpoints at', path)
 
-        # if i%args.i_video==0 and i > 0:
-        #     # Turn on testing mode
-        #     with torch.no_grad():
-        #         rgbs, disps = render_path(render_poses, hwf, K, args.chunk, render_kwargs_test)
-        #     print('Done, saving', rgbs.shape, disps.shape)
-        #     moviebase = os.path.join(basedir, expname, '{}_spiral_{:06d}_'.format(expname, i))
-        #     imageio.mimwrite(moviebase + 'rgb.mp4', to8b(rgbs), fps=30, quality=8)
-        #     imageio.mimwrite(moviebase + 'disp.mp4', to8b(disps / np.max(disps)), fps=30, quality=8)
-
-            # if args.use_viewdirs:
-            #     render_kwargs_test['c2w_staticcam'] = render_poses[0][:3,:4]
-            #     with torch.no_grad():
-            #         rgbs_still, _ = render_path(render_poses, hwf, args.chunk, render_kwargs_test)
-            #     render_kwargs_test['c2w_staticcam'] = None
-            #     imageio.mimwrite(moviebase + 'rgb_still.mp4', to8b(rgbs_still), fps=30, quality=8)
-
-        if i%1 == 0:
+        if i%500 == 0:
             print("")
             writer.add_scalar("NeRF", img_loss.item(), i)
             writer.add_scalar("NeRF_Fine", img_loss0.item(), i)

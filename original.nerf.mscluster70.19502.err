@@ -1,0 +1,3 @@
+  File "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/original_nerf/run_nerf.py", line 224
+    ckpt = os.path.join(paths_[1], nerf_checkpoint['checkpoint_nerf'])
+TabError: inconsistent use of tabs and spaces in indentation
