@@ -58,7 +58,8 @@ def get_parser():
 def setup_experiment_files(paths):
     for path in paths:
         path_ = os.path.join(experiment_facts['root_path'], path['root_path'] + "/{}".format(experiment_facts['type']))
-        path_ += "/{}".format(yaml_filepath.split("/")[1]).replace(".yaml", "")
+        # path_ += "/{}".format(yaml_filepath.split("/")[1]).replace(".yaml", "")
+        path_ += f"/experiment_0{experiment_facts['experiment_number']}_run_0{experiment_facts['run_number']}"
         paths_.append(path_)
         if not os.path.isdir(path_):
             os.makedirs(path_)
