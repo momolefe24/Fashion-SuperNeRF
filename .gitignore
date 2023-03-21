@@ -5,3 +5,4 @@ Results/
 Checkpoints/
 **/.ipynb_checkpoints
 **/__pycache__
+original.nerf.mscluster*

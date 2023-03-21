@@ -17,7 +17,7 @@ experiment_facts:
  device: 'cuda:0' # [cpu, cuda, cuda:0]
 
 checkpoint_facts:
- load_checkpoint: True
+ load_checkpoint: False
  save_checkpoint: True
  root_path: "Checkpoints"
  nerf_checkpoints:
@@ -37,7 +37,7 @@ checkpoint_facts:
 # ------------------- Result Facts
 results_facts:
  experiment_number: 1
- run_number: 1
+ run_number: 2
  root_path: "Results"
  nerf_results:
   NeRF_path: "Results/NeRF"
