@@ -2,7 +2,7 @@
 # ------------------- Experiment Facts
 experiment_facts:
  experiment_number: 1
- run_number: 2
+ run_number: 3
  root_path: "./"
  story: "Pretraining the three models such that when we combine them together, and evaluate the input (shirt, pose, person), the output is a novel fashion-view"
  research_question: "Can we synthesize a novel view fashion try-on to recreate a smart mirror using AI, instead of AR"
@@ -11,7 +11,7 @@ experiment_facts:
   gpu: "GTX 1060" # [GTX 1060, RTX 2060]
  type: "orginal_nerf" # Branch name
  experiment_name: "Pretrained Neural Radiance Field"
- experiment_description: "Train the original nerf so that we can debug the one that we simplified. The goal is to attach the output to a super-resolution network"
+ experiment_description: "Train the original nerf on the lego dataset with only 24 images to determine why the nerf on eric is terrible"
  experiment_stragey: "Pretrain NeRF so that we can combine evaluations"
  tags: "Neural Radiance"
  device: 'cuda:0' # [cpu, cuda, cuda:0]
@@ -37,7 +37,7 @@ checkpoint_facts:
 # ------------------- Result Facts
 results_facts:
  experiment_number: 1
- run_number: 2
+ run_number: 3
  root_path: "Results"
  nerf_results:
   NeRF_path: "Results/NeRF"

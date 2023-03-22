@@ -6,3 +6,4 @@ Checkpoints/
 **/.ipynb_checkpoints
 **/__pycache__
 original.nerf.mscluster*
+tiny_nerf_data.npz

@@ -420,7 +420,7 @@ def config_parser():
 
     import configargparse
     parser = configargparse.ArgumentParser()
-    parser.add_argument('--config', is_config_file=True, default="configs/eric.txt",
+    parser.add_argument('--config', is_config_file=True, default="configs/lego.txt",
                         help='config file path')
     parser.add_argument("--expname", type=str, default="original_nerf",
                         help='experiment name')
