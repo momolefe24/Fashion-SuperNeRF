@@ -420,13 +420,13 @@ def config_parser():
 
     import configargparse
     parser = configargparse.ArgumentParser()
-    parser.add_argument('--config', is_config_file=True, default="configs/lego.txt",
+    parser.add_argument('--config', is_config_file=True, default="configs/fern.txt",
                         help='config file path')
     parser.add_argument("--expname", type=str, default="original_nerf",
                         help='experiment name')
     parser.add_argument("--basedir", type=str, default='./logs/', 
                         help='where to store ckpts and logs')
-    parser.add_argument("--datadir", type=str, default='./data/nerf_people/eric/lr',
+    parser.add_argument("--datadir", type=str, default='./data/nerf_synthetic/fern',
                         help='input data directory')
     parser.add_argument(
         "-f",

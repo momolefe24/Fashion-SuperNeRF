@@ -2,11 +2,11 @@
 #SBATCH --job-name=original_nerf
 #SBATCH -N 1
 #SBATCH -n 14
-#SBATCH -w mscluster70
+#SBATCH -w mscluster108
 #SBATCH -t 72:00:00
 #SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/original_nerf/original.nerf.%N.%j.out"
 #SBATCH --ntasks=1
-#SBATCH --partition=bigbatch
+#SBATCH --partition=biggpu
 #SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/original_nerf/original.nerf.%N.%j.err"
 
 

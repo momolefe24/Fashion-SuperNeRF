@@ -1,12 +1,12 @@
-expname = blender_paper_lego
+expname = fern
 basedir = ./logs
-datadir = ./data/nerf_synthetic/lego
+datadir = ./data/nerf_synthetic/fern
 dataset_type = blender
 
 no_batching = True
 
 use_viewdirs = True
-white_bkgd = False
+white_bkgd = True
 lrate_decay = 500
 
 N_samples = 64
