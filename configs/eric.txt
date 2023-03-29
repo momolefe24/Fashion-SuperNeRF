@@ -1,6 +1,6 @@
 expname = original_nerf
 basedir = ./logs
-datadir = ./data/nerf_people/eric/lr
+datadir = ./data/nerf_people/eric/hr
 dataset_type = blender
 
 no_batching = True

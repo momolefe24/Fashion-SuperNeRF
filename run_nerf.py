@@ -167,15 +167,18 @@ def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedi
         if savedir is not None:
             rgb8 = to8b(rgbs[-1])
             filename = os.path.join(savedir, '{:03d}.png'.format(i))
-            #imageio.imwrite(filename, rgb8)
+            imageio.imwrite(filename, rgb8)
 
 
     rgbs = np.stack(rgbs, 0)
     prediction0 = torch.Tensor(to8b(rgbs[0])).unsqueeze(0)
     fine_prediction0 = torch.Tensor(to8b(fine_rgbs[0])).unsqueeze(0)
     ground_truth0 = torch.Tensor(gt_imgs[0]).unsqueeze(0)
+    print("Prediction Shape: ", prediction0.shape)
+    print("Fine Prediction Shape: ", fine_prediction0.shape)
+    print("Ground Truth Shape: ", ground_truth0.shape)
     concat = torch.cat([ground_truth0, prediction0, fine_prediction0], 0).permute(0, 3, 1, 2)
-    img_grid = torchvision.utils.make_grid(concat, normalize=True)
+    img_grid = torchvision.utils.make_grid(concat)
     writer.add_image("NeRF Images", img_grid, global_step=epoch + 1)
     disps = np.stack(disps, 0)
 
@@ -420,13 +423,13 @@ def config_parser():
 
     import configargparse
     parser = configargparse.ArgumentParser()
-    parser.add_argument('--config', is_config_file=True, default="configs/fern.txt",
+    parser.add_argument('--config', is_config_file=True, default="configs/eric.txt",
                         help='config file path')
     parser.add_argument("--expname", type=str, default="original_nerf",
                         help='experiment name')
     parser.add_argument("--basedir", type=str, default='./logs/', 
                         help='where to store ckpts and logs')
-    parser.add_argument("--datadir", type=str, default='./data/nerf_synthetic/fern',
+    parser.add_argument("--datadir", type=str, default='./data/nerf_people/eric/hr',
                         help='input data directory')
     parser.add_argument(
         "-f",

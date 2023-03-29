@@ -2,7 +2,7 @@
 #SBATCH --job-name=original_nerf
 #SBATCH -N 1
 #SBATCH -n 14
-#SBATCH -w mscluster108
+#SBATCH -w mscluster107
 #SBATCH -t 72:00:00
 #SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/original_nerf/original.nerf.%N.%j.out"
 #SBATCH --ntasks=1
