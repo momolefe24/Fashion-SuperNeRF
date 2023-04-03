@@ -15,6 +15,7 @@ experiment_facts:
  experiment_description: "Fixed the transformations for eric. Attempting to see whether NeRF will work on colmap generated transforms"
  experiment_stragey: "Pretrain NeRF so that we can combine evaluations"
  tags: "Neural Radiance"
+ seed: 42 # The seed value makes the results reproducible
  device: 'cuda:0' # [cpu, cuda, cuda:0]
 
 checkpoint_facts:
