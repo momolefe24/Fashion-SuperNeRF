@@ -8,7 +8,7 @@ from NeRF.model import NeRF, NeRF_Fine
 train_dataset = NeRF_Dataset(quality="lr", mode="train")
 train_dataloader = DataLoader(dataset=train_dataset, batch_size=hyperparameter_facts['batch_size'], shuffle=True)
 
-valid_dataset = NeRF_Dataset(quality="lr", mode="valid")
+valid_dataset = NeRF_Dataset(quality="lr", mode="val")
 valid_dataloader = DataLoader(dataset=valid_dataset, batch_size=hyperparameter_facts['batch_size'], shuffle=True)
 
 test_dataloader = NeRF_Dataset(quality="lr", mode="test")
@@ -93,6 +93,7 @@ for epoch in range(epochs):
                 eval_fine_rgb_map = torch.reshape(eval_fine_rgb_map, [100, 100, 3])
                 nerf_fine_prediction = eval_fine_rgb_map.unsqueeze(0).to('cpu')
                 concat = torch.cat([ground_truth, nerf_fine_prediction, nerf_rgb_prediction], 0).permute(0, 3, 1, 2)
+                # HVJ 77003 = new job
                 img_grid = torchvision.utils.make_grid(concat, normalize=True)
                 writer.add_image("NeRF Images", img_grid, global_step=epoch + 1)
                 print(f"Train stage: Neural Radiance Field "

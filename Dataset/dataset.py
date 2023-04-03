@@ -4,8 +4,8 @@ from NeRF.rendering import get_rays, render_rays, render, get_image_plane, get_i
 class NeRF_Dataset(Dataset):
     def __init__(self, quality="lr", mode="train"):
         # Setup directory
-        self.data_root = f"Dataset/nerf_{nerf_data['blender_data']}"
-        self.model_dir = os.path.join(self.data_root, f"{nerf_data['blender_model']}", quality)
+        # self.data_root = f"Dataset/nerf_{nerf_data['blender_data']}"
+        self.model_dir = f"Dataset/nerf_people/eric/hr"
         self.json_file = f"transforms_{mode}.json"
         self.transforms = os.path.join(self.model_dir, self.json_file)
 

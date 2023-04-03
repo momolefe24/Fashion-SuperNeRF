@@ -14,7 +14,7 @@ experiment_facts:
  experiment_description: "Perform simple neural radiance field. Currently, I am struggling to determine why the images are either just black or blurry"
  experiment_stragey: "Pretrain NeRF so that we can combine evaluations"
  tags: "Neural Radiance, Super-Resolution"
- device: 'cuda:0' # [cpu, cuda, cuda:0]
+ device: 'cpu' # [cpu, cuda, cuda:0]
 
 checkpoint_facts:
  load_checkpoint: False
@@ -54,7 +54,7 @@ results_facts:
 dataset_facts:
  nerf_data:
   blender_model: "eric"
-  image_shape: (100, 100)
+  image_shape: (1024, 768)
   white_background: False
   use_viewdirs: True
   blender_data: "people" # [nerf_liff_data, nerf_synthetic, nerf_people]

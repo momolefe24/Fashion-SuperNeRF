@@ -71,9 +71,9 @@ class NeRF(nn.Module):
         outputs = torch.reshape(outputs, list(sample_points.shape[:-1]) + [outputs.shape[-1]]).to(device)
         rgb_map, disp_map, acc_map, weights, depth_map = volume_rendering(outputs, z_vals, rays_d)
         if eval:
-            rgb_map = torch.reshape(rgb_map, [100, 100, 3])
-            disp_map = torch.reshape(disp_map, [100, 100])
-            acc_map = torch.reshape(acc_map, [100, 100])
+            rgb_map = torch.reshape(rgb_map, [1024, 768, 3])
+            disp_map = torch.reshape(disp_map, [1024, 768])
+            acc_map = torch.reshape(acc_map, [1024, 768])
 
         fine_parameters = {"viewdirs": viewdirs, "weights": weights, "z_vals": z_vals, "rays_o": rays_o,
                            "rays_d": rays_d}
@@ -143,7 +143,7 @@ class NeRF_Fine(nn.Module):
         fine_rgb_map, fine_disp_map, fine_acc_map, fine_weights, fine_depth_map = volume_rendering(outputs, z_vals,
                                                                                                    rays_d)
         if eval:
-            fine_rgb_map = torch.reshape(fine_rgb_map, [100, 100, 3])
-            fine_disp_map = torch.reshape(fine_disp_map, [100, 100])
-            fine_acc_map = torch.reshape(fine_acc_map, [100, 100])
+            fine_rgb_map = torch.reshape(fine_rgb_map, [800, 800, 3])
+            fine_disp_map = torch.reshape(fine_disp_map, [800, 800])
+            fine_acc_map = torch.reshape(fine_acc_map, [800, 800])
         return fine_rgb_map, fine_disp_map, fine_acc_map, fine_weights, fine_depth_map

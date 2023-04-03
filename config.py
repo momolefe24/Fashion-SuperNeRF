@@ -107,7 +107,8 @@ def load_checkpoint(checkpoint_file, model, optimizer, lr):
 
 paths_ = []
 args = get_parser().parse_args()
-yaml_filepath = args.filename
+#yaml_filepath = args.filename
+yaml_filepath = "experiments/experiment_01_run_01.yaml"
 with open(yaml_filepath, "r") as stream:
     cfg = yaml.load(stream, Loader=yaml.FullLoader)
 
