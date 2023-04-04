@@ -11,6 +11,7 @@ from load_blender import load_blender_data
 
 from config import *
 
+DEBUG = False
 np.random.seed(0)
 
 
