@@ -247,15 +247,15 @@ def config_parser():
                         help='where to store ckpts and logs')
     parser.add_argument("--datadir", type=str, default='./data/nerf_people/eric/hr',
                         help='input data directory')
-    parser.add_argument(
-        "-f",
-        "--file",
-        dest="filename",
-        default="experiments/experiment_01_run_01.yaml",
-        help="experiment definition file",
-        metavar="FILE",
-        required=True
-    )
+    # parser.add_argument(
+    #    "-f",
+    #    "--file",
+    #    dest="filename",
+    #    default="experiments/experiment_01_run_01.yaml",
+    #    help="experiment definition file",
+    #    metavar="FILE",
+    #    required=True
+    #)
     # training options
     parser.add_argument("--netdepth", type=int, default=8,
                         help='layers in network')
