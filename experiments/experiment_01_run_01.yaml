@@ -19,7 +19,7 @@ experiment_facts:
  device: 'cuda:0' # [cpu, cuda, cuda:0]
 
 checkpoint_facts:
- load_checkpoint: False
+ load_checkpoint: True
  save_checkpoint: True
  root_path: "Checkpoints"
  nerf_checkpoints:
