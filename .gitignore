@@ -1,0 +1,5 @@
+data/
+Checkpoints/
+Summary/
+tensorboard/
+eval_models/
