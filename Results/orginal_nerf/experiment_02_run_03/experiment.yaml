@@ -1,0 +1,106 @@
+checkpoint_facts:
+  SR:
+    checkpoint_disc: disc.pth
+    checkpoint_gen: gen.pth
+  VITON:
+    checkpoint_alias: alias_final.pth
+    checkpoint_gmm: gmm_final.pth
+    checkpoint_model: model.pth
+    checkpoint_seg: seg_final.pth
+  load_checkpoint: true
+  nerf_checkpoints:
+    checkpoint_nerf: NeRF.pth
+    checkpoint_nerf_fine: NeRF_Fine.pth
+  root_path: Checkpoints
+  save_checkpoint: true
+dataset_facts:
+  nerf_data:
+    blender_data: people
+    blender_model: eric
+    image_shape: (100, 100)
+    transforms:
+      mean: (0, 0, 0)
+      std: (1, 1, 1)
+    use_viewdirs: true
+    white_background: false
+  sr_data: null
+  viton_data: null
+embedding_facts:
+  nerf_embedder:
+    include_input: true
+    input_dim: 3
+    log_sampling: true
+    multi_res: 10
+    multi_res_views: 4
+    num_freqs: 10
+experiment_facts:
+  device: cuda:0
+  experiment_description: Fixed the transformations for eric. Attempting to see whether
+    NeRF will work on colmap generated transforms
+  experiment_name: Pretrained Neural Radiance Field
+  experiment_number: 2
+  experiment_stragey: Pretrain NeRF so that we can combine evaluations
+  machine:
+    computer: cluster
+    gpu: GTX 3080
+    node: big gpu
+  research_question: Can we synthesize a novel view fashion try-on to recreate a smart
+    mirror using AI, instead of AR
+  root_path: ./
+  run_number: 3
+  seed: 42
+  story: Pretraining the three models such that when we combine them together, and
+    evaluate the input (shirt, pose, person), the output is a novel fashion-view
+  tags: Neural Radiance
+  type: orginal_nerf
+hyperparameter_facts:
+  batch_size: 1
+  epochs: 5000
+  nerf_hyperparameters:
+    factor: 8
+    far: 6.0
+    importance: 128
+    near: 2.0
+    num_chunks: 32
+    num_samples: 64
+    perturb: 1.0
+    precrop_factor: 0.5
+    precrop_iters: 500
+    random_samples: 1024
+    raw_noise_std: 0
+    raw_predictions: true
+  num_workers: 1
+  sr_hyperparameters: null
+  viton_hyperparameters: null
+model_facts:
+  nerf_model:
+    input_channel: 3
+    input_channel_views: 3
+    lrate: 0.0005
+    lrate_decay: 500
+    net_width: 256
+    net_width_fine: 256
+    netchunk: 65536
+    netdepth: 8
+    netdepth_fine: 8
+    network_fine: true
+    output_channel: 5
+    perturb: 1.0
+    precrop_frac: 0.5
+    skips: 4
+  sr_model: null
+  viton_model: null
+results_facts:
+  experiment_number: 2
+  nerf_results:
+    NeRF_path: Results/NeRF
+  root_path: Results
+  run_number: 3
+  sr_results: null
+  summary_facts:
+    nerf_summary:
+      samples_dir: samples/NeRF
+      weights_dir: weights/NeRF
+      writer_logs_dir: log
+    root_path: Summary
+  viton_results: null
