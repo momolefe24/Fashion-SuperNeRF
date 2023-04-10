@@ -51,7 +51,7 @@ def get_opt():
     parser.add_argument('-b', '--batch-size', type=int, default=8)
     parser.add_argument('--fp16', action='store_true', help='use amp')
 
-    parser.add_argument("--dataroot", default="./data/viton")
+    parser.add_argument("--dataroot", default="./data/nerf_people/eric/hr")
     parser.add_argument("--datamode", default="train")
     parser.add_argument("--data_list", default="train_pairs.txt")
     parser.add_argument("--fine_width", type=int, default=192)
@@ -508,6 +508,7 @@ def main():
     
     # create train dataset & loader
     train_dataset = CPDataset(opt)
+    train_dataset.__getitem__(0)
     train_loader = CPDataLoader(opt, train_dataset)
     
     # create test dataset & loader

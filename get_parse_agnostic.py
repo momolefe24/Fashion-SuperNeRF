@@ -57,7 +57,7 @@ if __name__=="__main__":
     for im_name in tqdm(os.listdir(osp.join(data_path, 'image'))):
         
         # load pose image
-        pose_name = im_name.replace('.jpg', '_keypoints.json')
+        pose_name = im_name.replace('.png', '_keypoints.json')
         
         try:
             with open(osp.join(data_path, 'openpose_json', pose_name), 'r') as f:
@@ -70,7 +70,7 @@ if __name__=="__main__":
             continue
 
         # load parsing image
-        parse_name = im_name.replace('.jpg', '.png')
+        parse_name = im_name.replace('.png', '.png')
         im_parse = Image.open(osp.join(data_path, 'image-parse-v3', parse_name))
 
         agnostic = get_im_parse_agnostic(im_parse, pose_data)

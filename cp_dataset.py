@@ -40,7 +40,7 @@ class CPDataset(data.Dataset):
 
         self.im_names = im_names
         self.c_names = dict()
-        self.c_names['paired'] = im_names
+        self.c_names['paired'] = ["r_0.png" for _ in range(len(im_names))]
         self.c_names['unpaired'] = c_names
 
     def name(self):
@@ -140,7 +140,7 @@ class CPDataset(data.Dataset):
         im = self.transform(im_pil)
 
         # load parsing image
-        parse_name = im_name.replace('image', 'image-parse-v3').replace('.jpg', '.png')
+        parse_name = im_name.replace('image', 'image-parse-v3').replace('.png', '.png')
         im_parse_pil_big = Image.open(osp.join(self.data_path, parse_name))
         im_parse_pil = transforms.Resize(self.fine_width, interpolation=0)(im_parse_pil_big)
         parse = torch.from_numpy(np.array(im_parse_pil)[None]).long()
@@ -195,7 +195,7 @@ class CPDataset(data.Dataset):
         im_c = im * pcm + (1 - pcm)
 
         # load pose points
-        pose_name = im_name.replace('image', 'openpose_img').replace('.jpg', '_rendered.png')
+        pose_name = im_name.replace('image', 'openpose_img').replace('.png', '_rendered.png')
         pose_map = Image.open(osp.join(self.data_path, pose_name))
         pose_map = transforms.Resize(self.fine_width, interpolation=2)(pose_map)
         pose_map = self.transform(pose_map)  # [-1,1]
