@@ -1,6 +1,7 @@
 Dataset/
 data/
 logs/
+*.png
 Summary/
 Results/
 Checkpoints/

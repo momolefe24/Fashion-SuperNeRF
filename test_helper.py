@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torchvision.utils
 from tqdm import tqdm, trange
 import time
+import matplotlib.pyplot as plt
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 from run_nerf_helpers import *
@@ -131,6 +132,7 @@ def create_nerf(args):
         start = ckpt['global_step']
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
         model.load_state_dict(ckpt['network_fn_state_dict'])
+        print("Model is loaded")
         if model_fine is not None:
             model_fine.load_state_dict(ckpt['network_fine_state_dict'])
     render_kwargs_train = {
@@ -380,4 +382,13 @@ bds_dict = {
         'far' : far,
     }
 render_kwargs_test.update(bds_dict)
+save_image = lambda title, torch_img: plt.imsave(f"{title}.png", torch_img.cpu().numpy())
+
+def probe(pose, num=0):
+	c2w = pose[:3, :4]
+	with torch.no_grad():
+		rgb, disp, acc, _ = render(H, W, K, chunk=args.chunk, c2w=c2w, **render_kwargs_test)
+	save_image(f"r_{str(num)}", rgb)
+
+
 
