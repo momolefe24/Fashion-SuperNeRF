@@ -388,7 +388,7 @@ def probe(pose, num=0):
 	c2w = pose[:3, :4]
 	with torch.no_grad():
 		rgb, disp, acc, _ = render(H, W, K, chunk=args.chunk, c2w=c2w, **render_kwargs_test)
-	save_image(f"r_{str(num)}", rgb)
+	return rgb
 
 
 
