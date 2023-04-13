@@ -201,7 +201,7 @@ class CPDataset(data.Dataset):
         pose_map = self.transform(pose_map)  # [-1,1]
         
         # pose name
-        pose_name = im_name.replace('image', 'openpose_json').replace('.jpg', '_keypoints.json')
+        pose_name = im_name.replace('image', 'openpose_json').replace('.png', '_keypoints.json')
         with open(osp.join(self.data_path, pose_name), 'r') as f:
             pose_label = json.load(f)
             pose_data = pose_label['people'][0]['pose_keypoints_2d']
