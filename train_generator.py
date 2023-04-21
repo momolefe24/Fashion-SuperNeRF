@@ -478,6 +478,7 @@ def train(opt, train_loader, test_loader, test_vis_loader, board, tocg, generato
                     board.add_images(f'test_images/{i}', grid.unsqueeze(0), step + 1)
                 
             generator.train()
+        pdb.set_trace()
         if (step + 1) % opt.lpips_count == 0:
             generator.eval()
             T2 = transforms.Compose([transforms.Resize((128, 128))])
