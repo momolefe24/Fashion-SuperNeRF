@@ -137,7 +137,7 @@ class CPDataset(data.Dataset):
         # person image
         im_pil_big = Image.open(osp.join(self.data_path, im_name))
         im_pil = transforms.Resize(self.fine_width, interpolation=2)(im_pil_big)
-        im = self.transform(im_pil)
+        im = self.transform(im_pil.convert('RGB'))
 
         # load parsing image
         parse_name = im_name.replace('image', 'image-parse-v3').replace('.png', '.png')
