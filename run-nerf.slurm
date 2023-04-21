@@ -4,10 +4,10 @@
 #SBATCH -n 14
 #SBATCH -w mscluster107
 #SBATCH -t 72:00:00
-#SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/original_nerf/original.hrviton.%N.%j.out"
+#SBATCH --output="/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/original_hrviton/original.hrviton.%N.%j.out"
 #SBATCH --ntasks=1
 #SBATCH --partition=biggpu
-#SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/original_nerf/original.hrviton.%N.%j.err"
+#SBATCH -e "/home-mscluster/mmolefe/Playground/Synthesising Virtual Fashion Try-On with Neural Radiance Fields/Fashion-SuperNeRF/original_hrviton/original.hrviton.%N.%j.err"
 
 
 echo ------------------------------------------------------
@@ -25,4 +25,4 @@ echo ------------------------------------------------------
 nvidia-smi
 source ~/.bashrc
 conda activate NeRF
-python3 train_condition.py --cuda True --gpu_ids 0 --Ddownx2 --Ddropout --lasttvonly --interflowloss --occlusion
+python3 train_generator.py --cuda True --name test -b 4 -j 8 --gpu_ids 0 --tocg_checkpoint checkpoints/VITON/tocg_step_230000.pth --occlusion

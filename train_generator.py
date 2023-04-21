@@ -6,6 +6,7 @@ from torchvision.utils import make_grid as make_image_grid
 import argparse
 import os
 import time
+import pdb
 from cp_dataset import CPDataset, CPDataLoader
 from cp_dataset_test import CPDatasetTest
 from networks import ConditionGenerator, VGGLoss, load_checkpoint, save_checkpoint, make_grid
@@ -56,7 +57,7 @@ def get_opt():
     parser.add_argument('--gen_checkpoint', type=str, default='', help='gen checkpoint')
     parser.add_argument('--dis_checkpoint', type=str, default='', help='dis checkpoint')
 
-    parser.add_argument("--tensorboard_count", type=int, default=100)
+    parser.add_argument("--tensorboard_count", type=int, default=1)
     parser.add_argument("--display_count", type=int, default=100)
     parser.add_argument("--save_count", type=int, default=10000)
     parser.add_argument("--load_step", type=int, default=0)
@@ -65,7 +66,7 @@ def get_opt():
     parser.add_argument("--shuffle", action='store_true', help='shuffle input data')
     
     # test
-    parser.add_argument("--lpips_count", type=int, default=1000)
+    parser.add_argument("--lpips_count", type=int, default=1)
     parser.add_argument("--test_datasetting", default="paired")
     parser.add_argument("--test_dataroot", default="./data/nerf_people/eric/hr")
     parser.add_argument("--test_data_list", default="test_pairs.txt")
@@ -477,7 +478,6 @@ def train(opt, train_loader, test_loader, test_vis_loader, board, tocg, generato
                     board.add_images(f'test_images/{i}', grid.unsqueeze(0), step + 1)
                 
             generator.train()
-
         if (step + 1) % opt.lpips_count == 0:
             generator.eval()
             T2 = transforms.Compose([transforms.Resize((128, 128))])
