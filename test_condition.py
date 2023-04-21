@@ -18,11 +18,12 @@ def get_opt():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--gpu_ids", default="")
+    parser.add_argument("--cuda", default='False')
     parser.add_argument('-j', '--workers', type=int, default=4)
     parser.add_argument('-b', '--batch-size', type=int, default=8)
     parser.add_argument('--fp16', action='store_true', help='use amp')
 
-    parser.add_argument("--dataroot", default="./data/zalando-hd-resize")
+    parser.add_argument("--dataroot", default="./data/nerf_people/eric/hr")
     parser.add_argument("--datamode", default="test")
     parser.add_argument("--data_list", default="test_pairs.txt")
     parser.add_argument("--datasetting", default="paired")
@@ -30,8 +31,8 @@ def get_opt():
     parser.add_argument("--fine_height", type=int, default=256)
 
     parser.add_argument('--tensorboard_dir', type=str, default='tensorboard', help='save tensorboard infos')
-    parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='save checkpoint infos')
-    parser.add_argument('--tocg_checkpoint', type=str, default='', help='tocg checkpoint')
+    parser.add_argument('--checkpoint_dir', type=str, default='checkpoints/VITON', help='save checkpoint infos')
+    parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/VITON/tocg_step_230000.pth', help='tocg checkpoint')
     parser.add_argument('--D_checkpoint', type=str, default='', help='D checkpoint')
     
     parser.add_argument("--tensorboard_count", type=int, default=100)
@@ -62,12 +63,12 @@ def get_opt():
     return opt
 
 
-def test(opt, test_loader, board, tocg, D=None):
+def test(opt, test_loader, tocg, D=None):
     # Model
-    tocg.cuda()
+    # tocg.cuda()
     tocg.eval()
     if D is not None:
-        D.cuda()
+        # D.cuda()
         D.eval()
     
     os.makedirs(os.path.join('./output', opt.tocg_checkpoint.split('/')[-2], opt.tocg_checkpoint.split('/')[-1],
@@ -79,18 +80,18 @@ def test(opt, test_loader, board, tocg, D=None):
     for inputs in test_loader.data_loader:
         
         # input1
-        c_paired = inputs['cloth'][opt.datasetting].cuda()
-        cm_paired = inputs['cloth_mask'][opt.datasetting].cuda()
-        cm_paired = torch.FloatTensor((cm_paired.detach().cpu().numpy() > 0.5).astype(np.float)).cuda()
+        c_paired = inputs['cloth'][opt.datasetting]
+        cm_paired = inputs['cloth_mask'][opt.datasetting]
+        cm_paired = torch.FloatTensor((cm_paired.detach().cpu().numpy() > 0.5).astype(np.float))
         # input2
-        parse_agnostic = inputs['parse_agnostic'].cuda()
-        densepose = inputs['densepose'].cuda()
-        openpose = inputs['pose'].cuda()
+        parse_agnostic = inputs['parse_agnostic']
+        densepose = inputs['densepose']
+        openpose = inputs['pose']
         # GT
-        label_onehot = inputs['parse_onehot'].cuda()  # CE
-        label = inputs['parse'].cuda()  # GAN loss
-        parse_cloth_mask = inputs['pcm'].cuda()  # L1
-        im_c = inputs['parse_cloth'].cuda()  # VGG
+        label_onehot = inputs['parse_onehot']  # CE
+        label = inputs['parse']  # GAN loss
+        parse_cloth_mask = inputs['pcm']  # L1
+        im_c = inputs['parse_cloth']  # VGG
         # visualization
         im = inputs['image']
 
@@ -100,10 +101,10 @@ def test(opt, test_loader, board, tocg, D=None):
             input2 = torch.cat([parse_agnostic, densepose], 1)
 
             # forward
-            flow_list, fake_segmap, warped_cloth_paired, warped_clothmask_paired = tocg(input1, input2)
+            flow_list, fake_segmap, warped_cloth_paired, warped_clothmask_paired = tocg(opt, input1, input2)
             
             # warped cloth mask one hot 
-            warped_cm_onehot = torch.FloatTensor((warped_clothmask_paired.detach().cpu().numpy() > 0.5).astype(np.float)).cuda()
+            warped_cm_onehot = torch.FloatTensor((warped_clothmask_paired.detach().cpu().numpy() > 0.5).astype(np.float))
             
             if opt.clothmask_composition != 'no_composition':
                 if opt.clothmask_composition == 'detach':
@@ -162,12 +163,13 @@ def main():
     
     # create test dataset & loader
     test_dataset = CPDatasetTest(opt)
+    test_dataset.__getitem__(0)
     test_loader = CPDataLoader(opt, test_dataset)
     
     # visualization
     if not os.path.exists(opt.tensorboard_dir):
         os.makedirs(opt.tensorboard_dir)
-    board = SummaryWriter(log_dir=os.path.join(opt.tensorboard_dir, opt.tocg_checkpoint.split('/')[-2], opt.tocg_checkpoint.split('/')[-1], opt.datamode, opt.datasetting))
+    # board = SummaryWriter(log_dir=os.path.join(opt.tensorboard_dir, opt.tocg_checkpoint.split('/')[-2], opt.tocg_checkpoint.split('/')[-1], opt.datamode, opt.datasetting))
 
     # Model
     input1_nc = 4  # cloth + cloth-mask
@@ -180,11 +182,11 @@ def main():
     else:
         D = None
     # Load Checkpoint
-    load_checkpoint(tocg, opt.tocg_checkpoint)
+    load_checkpoint(tocg, opt.tocg_checkpoint, opt)
     if not opt.D_checkpoint == '' and os.path.exists(opt.D_checkpoint):
-        load_checkpoint(D, opt.D_checkpoint)
+        load_checkpoint(D, opt.D_checkpoint, opt)
     # Train
-    test(opt, test_loader, board, tocg, D=D)
+    test(opt, test_loader, tocg, D=D)
 
     print("Finished testing!")
 

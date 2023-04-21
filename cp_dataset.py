@@ -304,7 +304,7 @@ class CPDatasetTest(data.Dataset):
         # person image
         im = Image.open(osp.join(self.data_path, 'image', im_name))
         im = transforms.Resize(self.fine_width, interpolation=2)(im)
-        im = self.transform(im)
+        im = self.transform(im.convert('RGB'))
 
         # load parsing image
         parse_name = im_name.replace('.jpg', '.png')
