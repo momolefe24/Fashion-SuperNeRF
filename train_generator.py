@@ -617,7 +617,7 @@ def main():
     opt.datamode = 'test'
     opt.data_list = opt.test_data_list
     test_dataset = CPDatasetTest(opt)
-    #test_dataset = Subset(test_dataset, np.arange(500))
+    test_dataset = Subset(test_dataset, np.arange(500))
     test_loader = CPDataLoader(opt, test_dataset)
     
     # test vis loader
@@ -643,9 +643,6 @@ def main():
     # Generator model
     generator = SPADEGenerator(opt, 3+3+3)
     generator.print_network()
-    if len(opt.gpu_ids) > 0:
-        assert(torch.cuda.is_available())
-        generator.cuda()
     generator.init_weights(opt.init_type, opt.init_variance)
     discriminator = create_network(MultiscaleDiscriminator, opt)
 
