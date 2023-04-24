@@ -25,4 +25,4 @@ echo ------------------------------------------------------
 nvidia-smi
 source ~/.bashrc
 conda activate NeRF
-python3 train_generator.py --cuda True --name test -b 4 -j 8 --gpu_ids 0 --tocg_checkpoint checkpoints/VITON/tocg_step_230000.pth --occlusion
+python3 train_condition.py --cuda True --gpu_ids 0 --Ddownx2 --Ddropout --lasttvonly --interflowloss --occlusion

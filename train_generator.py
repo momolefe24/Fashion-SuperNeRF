@@ -6,7 +6,6 @@ from torchvision.utils import make_grid as make_image_grid
 import argparse
 import os
 import time
-import pdb
 from cp_dataset import CPDataset, CPDataLoader
 from cp_dataset_test import CPDatasetTest
 from networks import ConditionGenerator, VGGLoss, load_checkpoint, save_checkpoint, make_grid
@@ -57,7 +56,7 @@ def get_opt():
     parser.add_argument('--gen_checkpoint', type=str, default='', help='gen checkpoint')
     parser.add_argument('--dis_checkpoint', type=str, default='', help='dis checkpoint')
 
-    parser.add_argument("--tensorboard_count", type=int, default=1)
+    parser.add_argument("--tensorboard_count", type=int, default=100)
     parser.add_argument("--display_count", type=int, default=100)
     parser.add_argument("--save_count", type=int, default=10000)
     parser.add_argument("--load_step", type=int, default=0)
@@ -66,7 +65,7 @@ def get_opt():
     parser.add_argument("--shuffle", action='store_true', help='shuffle input data')
     
     # test
-    parser.add_argument("--lpips_count", type=int, default=1)
+    parser.add_argument("--lpips_count", type=int, default=1000)
     parser.add_argument("--test_datasetting", default="paired")
     parser.add_argument("--test_dataroot", default="./data/nerf_people/eric/hr")
     parser.add_argument("--test_data_list", default="test_pairs.txt")
@@ -109,7 +108,7 @@ def get_opt():
     parser.add_argument("--out_layer", choices=['relu', 'conv'], default="relu")
     parser.add_argument("--clothmask_composition", type=str, choices=['no_composition', 'detach', 'warp_grad'], default='warp_grad')
     # visualize
-    parser.add_argument("--num_test_visualize", type=int, default=3)
+    parser.add_argument("--num_test_visualize", type=int, default=2)
 
     opt = parser.parse_args()
 
@@ -478,7 +477,7 @@ def train(opt, train_loader, test_loader, test_vis_loader, board, tocg, generato
                     board.add_images(f'test_images/{i}', grid.unsqueeze(0), step + 1)
                 
             generator.train()
-        pdb.set_trace()
+   
         if (step + 1) % opt.lpips_count == 0:
             generator.eval()
             T2 = transforms.Compose([transforms.Resize((128, 128))])
@@ -487,7 +486,7 @@ def train(opt, train_loader, test_loader, test_vis_loader, board, tocg, generato
             
             with torch.no_grad():
                 print("LPIPS")
-                for i in tqdm(range(500)):
+                for i in tqdm(range(1)):
                     inputs = test_loader.next_batch()
                     # input
                     agnostic = inputs['agnostic'].cuda()
@@ -579,10 +578,10 @@ def train(opt, train_loader, test_loader, test_vis_loader, board, tocg, generato
                     
                     avg_distance += model.forward(T2(im), T2(output_paired))
                     
-            avg_distance = avg_distance / 500
+            avg_distance = avg_distance / 1
             print(f"LPIPS{avg_distance}")
-            board.add_scalar('test/LPIPS', avg_distance, step + 1)
-                
+            average_distance = avg_distance.squeeze().mean()
+            board.add_scalar('test/LPIPS', average_distance, step + 1)    
             generator.train()
 
         if (step + 1) % opt.display_count == 0:
@@ -611,13 +610,14 @@ def main():
     # create dataloader
     train_loader = CPDataLoader(opt, train_dataset)
     
+
     # test dataloader
-    opt.batch_size = 1
+    opt.batch_size = 2
     opt.dataroot = opt.test_dataroot
     opt.datamode = 'test'
     opt.data_list = opt.test_data_list
     test_dataset = CPDatasetTest(opt)
-    test_dataset = Subset(test_dataset, np.arange(500))
+    #test_dataset = Subset(test_dataset, np.arange(500))
     test_loader = CPDataLoader(opt, test_dataset)
     
     # test vis loader
