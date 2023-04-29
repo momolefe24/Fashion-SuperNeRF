@@ -2,12 +2,17 @@
 import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
-
+import torchvision
 from PIL import Image, ImageDraw
 import json
 
 import os.path as osp
 import numpy as np
+
+import matplotlib.pyplot as plt
+
+
+to3 = lambda inputs: inputs.permute(1,2,0).detach().cpu().numpy()
 
 
 class CPDataset(data.Dataset):
@@ -141,8 +146,8 @@ class CPDataset(data.Dataset):
         im = self.transform(im_pil.convert('RGB'))
 
         # load parsing image
-        # parse_name = im_name.replace('image', 'image-parse-v3').replace('.png', '.png') Eric
-        parse_name = im_name.replace('image', 'image-parse-v3').replace('.jpg', '.png')
+        # parse_name = im_name.replace('image', 'image-parse-v3').replace('.png', '.png') #Eric
+        parse_name = im_name.replace('image', 'image-parse-v3').replace('.jpg', '.png') # VITON
         im_parse_pil_big = Image.open(osp.join(self.data_path, parse_name))
         im_parse_pil = transforms.Resize(self.fine_width, interpolation=0)(im_parse_pil_big)
         parse = torch.from_numpy(np.array(im_parse_pil)[None]).long()
@@ -194,18 +199,18 @@ class CPDataset(data.Dataset):
                      
         # parse cloth & parse cloth mask
         pcm = new_parse_map[3:4]
+        # Materials: new_parse_map - gets the upper labels
         im_c = im * pcm + (1 - pcm)
-
         # load pose points
-        # pose_name = im_name.replace('image', 'openpose_img').replace('.png', '_rendered.png') Eric
-        pose_name = im_name.replace('image', 'openpose_img').replace('.jpg', '_rendered.png')
+        # pose_name = im_name.replace('image', 'openpose_img').replace('.png', '_rendered.png') #Eric
+        pose_name = im_name.replace('image', 'openpose_img').replace('.jpg', '_rendered.png') # VITON
         pose_map = Image.open(osp.join(self.data_path, pose_name))
         pose_map = transforms.Resize(self.fine_width, interpolation=2)(pose_map)
         pose_map = self.transform(pose_map)  # [-1,1]
         
         # pose name
-        # pose_name = im_name.replace('image', 'openpose_json').replace('.png', '_keypoints.json') Eric
-        pose_name = im_name.replace('image', 'openpose_json').replace('.jpg', '_keypoints.json')
+        # pose_name = im_name.replace('image', 'openpose_json').replace('.png', '_keypoints.json') # Eric
+        pose_name = im_name.replace('image', 'openpose_json').replace('.jpg', '_keypoints.json') # VITON
         with open(osp.join(self.data_path, pose_name), 'r') as f:
             pose_label = json.load(f)
             pose_data = pose_label['people'][0]['pose_keypoints_2d']
@@ -213,7 +218,7 @@ class CPDataset(data.Dataset):
             pose_data = pose_data.reshape((-1, 3))[:, :2]
         
         # load densepose
-        densepose_name = im_name.replace('image', 'image-densepose')
+        densepose_name = im_name.replace('image', 'image-densepose').replace(".jpg",".png")
         densepose_map = Image.open(osp.join(self.data_path, densepose_name))
         densepose_map = transforms.Resize(self.fine_width, interpolation=2)(densepose_map)
         densepose_map = self.transform(densepose_map)  # [-1,1]
@@ -222,7 +227,6 @@ class CPDataset(data.Dataset):
         agnostic = self.get_agnostic(im_pil_big, im_parse_pil_big, pose_data)
         agnostic = transforms.Resize(self.fine_width, interpolation=2)(agnostic)
         agnostic = self.transform(agnostic)
-
 
         result = {
             'c_name':   c_name,     # for visualization

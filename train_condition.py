@@ -13,8 +13,12 @@ from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from utils import *
 from torch.utils.data import Subset
+import matplotlib.pyplot as plt
 
 
+to = lambda inputs,name,i: inputs[name][i].permute(1,2,0).cpu().numpy()
+to2 = lambda inputs,name1,name2, i: inputs[name1][name2][i].permute(1,2,0).cpu().numpy()
+to3 = lambda inputs,i: inputs[i].permute(1,2,0).detach().cpu().numpy()
 def iou_metric(y_pred_batch, y_true_batch):
     B = y_pred_batch.shape[0]
     iou = 0
@@ -51,8 +55,9 @@ def get_opt():
     parser.add_argument('-b', '--batch-size', type=int, default=8)
     parser.add_argument('--fp16', action='store_true', help='use amp')
 
-    #parser.add_argument("--dataroot", default="./data/nerf_people/eric/hr")
-    parser.add_argument("--dataroot", default="./data/viton")
+    # parser.add_argument("--dataroot", default="./data/nerf_people/eric/hr")
+    # parser.add_argument("--dataroot", default="./data/viton")
+    parser.add_argument("--dataroot", default="./data/molefe")
     parser.add_argument("--datamode", default="train")
     parser.add_argument("--data_list", default="train_pairs.txt")
     parser.add_argument("--fine_width", type=int, default=192)
@@ -60,7 +65,8 @@ def get_opt():
 
     parser.add_argument('--tensorboard_dir', type=str, default='tensorboard', help='save tensorboard infos')
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='save checkpoint infos')
-    parser.add_argument('--tocg_checkpoint', type=str, default='', help='tocg checkpoint')
+    # parser.add_argument('--tocg_checkpoint', type=str, default='', help='tocg checkpoint')
+    parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/VITON/Original Virtual Try-On/tocg_step_120000.pth', help='tocg checkpoint')
 
     parser.add_argument("--tensorboard_count", type=int, default=100)
     parser.add_argument("--display_count", type=int, default=100)
@@ -92,7 +98,7 @@ def get_opt():
     parser.add_argument("--no_test_visualize", action='store_true')    
     parser.add_argument("--num_test_visualize", type=int, default=3)
     parser.add_argument("--test_datasetting", default="unpaired")
-    parser.add_argument("--test_dataroot", default="./data/viton")
+    parser.add_argument("--test_dataroot", default="./data/molefe")
     parser.add_argument("--test_data_list", default="test_pairs.txt")
     
 
@@ -177,7 +183,11 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
 
         # forward
         flow_list, fake_segmap, warped_cloth_paired, warped_clothmask_paired = tocg(opt, input1, input2)
-        
+
+        # to = lambda inputs, name, i: inputs[name][i].permute(1, 2, 0).cpu().numpy()[:, :, ::-1]  # to(inputs, 'cloth',0)
+        # to2 = lambda inputs, name1, name2, i: inputs[name1][name2][i].permute(1, 2, 0).cpu().numpy()[:, :,
+        #                                       ::-1]  # to2(inputs, 'cloth','paired',0)
+        # to3 = lambda inputs, i: inputs[i].permute(1, 2, 0).detach().cpu().numpy()[:, :, ::-1]
         # warped cloth mask one hot 
         if eval(opt.cuda):
             warped_cm_onehot = torch.FloatTensor((warped_clothmask_paired.detach().cpu().numpy() > 0.5).astype(np.float32)).cuda()
@@ -197,7 +207,7 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
         if opt.occlusion:
             warped_clothmask_paired = remove_overlap(F.softmax(fake_segmap, dim=1), warped_clothmask_paired)
             warped_cloth_paired = warped_cloth_paired * warped_clothmask_paired + torch.ones_like(warped_cloth_paired) * (1-warped_clothmask_paired)
-        
+
         # generated fake cloth mask & misalign mask
         fake_clothmask = (torch.argmax(fake_segmap.detach(), dim=1, keepdim=True) == 3).long()
         misalign = fake_clothmask - warped_cm_onehot
@@ -269,7 +279,27 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
                 warped_cm = remove_overlap(F.softmax(fake_segmap, dim=1), warped_cm)
                 loss_l1_cloth += criterionL1(warped_cm, parse_cloth_mask) / (2 ** (4-i))
                 loss_vgg += criterionVGG(warped_c, im_c) / (2 ** (4-i))
-            
+
+        # import matplotlib as mpl
+        # mpl.rcParams.update(mpl.rcParamsDefault)
+        plt.rcParams['text.usetex'] = True
+        fig, f1_axes = plt.subplots(ncols=2, nrows=3, constrained_layout=True)
+        f1_axes[0][0].imshow(to(inputs, 'image', 0),cmap='gray')  # Image
+        f1_axes[0][0].set_title('Image')
+        f1_axes[0][1].imshow(to3(c_paired, 0),cmap='gray')  # Cloth
+        f1_axes[0][1].set_title('Cloth')
+
+        f1_axes[1][0].imshow(to3(warped_cloth_paired, 0),cmap='gray')  # warped_cloth_paired - W(c, Ff)
+        f1_axes[1][0].set_title(r'$W(c,F_{f_i})$')
+        f1_axes[1][1].imshow(to3(im_c, 0),cmap='gray')  # Ic
+        f1_axes[1][1].set_title(r'$I_c$')
+
+        f1_axes[2][0].imshow(to3(warped_c, 0),cmap='gray')  # I^c
+        f1_axes[2][0].set_title(r'$\hat{I}_c$')
+        f1_axes[2][1].imshow(to3(im_c, 0),cmap='gray')  # Ic
+        f1_axes[2][1].set_title(r'$I_c$')
+        fig.suptitle('VGG Loss')
+        fig.savefig("output.png")
         # loss segmentation
         # generator
         CE_loss = cross_entropy2d(fake_segmap, label_onehot.transpose(0, 1)[0].long())
@@ -509,7 +539,6 @@ def main():
     
     # create train dataset & loader
     train_dataset = CPDataset(opt)
-    train_dataset.__getitem__(0)
     train_loader = CPDataLoader(opt, train_dataset)
     
     # create test dataset & loader
@@ -522,7 +551,7 @@ def main():
         opt.data_list = opt.test_data_list
         test_dataset = CPDatasetTest(opt)
         opt.batch_size = train_bsize
-        val_dataset = Subset(test_dataset, np.arange(2000))
+        val_dataset = Subset(test_dataset, np.arange(50))
         test_loader = CPDataLoader(opt, test_dataset)
         val_loader = CPDataLoader(opt, val_dataset)
     # visualization
@@ -538,7 +567,7 @@ def main():
     
     # Load Checkpoint
     if not opt.tocg_checkpoint == '' and os.path.exists(opt.tocg_checkpoint):
-        load_checkpoint(tocg, opt.tocg_checkpoint)
+        load_checkpoint(tocg, opt.tocg_checkpoint, opt)
 
     # Train
     train(opt, train_loader, val_loader, test_loader, board, tocg, D)
