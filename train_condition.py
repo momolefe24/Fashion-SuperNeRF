@@ -280,26 +280,6 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
                 loss_l1_cloth += criterionL1(warped_cm, parse_cloth_mask) / (2 ** (4-i))
                 loss_vgg += criterionVGG(warped_c, im_c) / (2 ** (4-i))
 
-        # import matplotlib as mpl
-        # mpl.rcParams.update(mpl.rcParamsDefault)
-        plt.rcParams['text.usetex'] = True
-        fig, f1_axes = plt.subplots(ncols=2, nrows=3, constrained_layout=True)
-        f1_axes[0][0].imshow(to(inputs, 'image', 0),cmap='gray')  # Image
-        f1_axes[0][0].set_title('Image')
-        f1_axes[0][1].imshow(to3(c_paired, 0),cmap='gray')  # Cloth
-        f1_axes[0][1].set_title('Cloth')
-
-        f1_axes[1][0].imshow(to3(warped_cloth_paired, 0),cmap='gray')  # warped_cloth_paired - W(c, Ff)
-        f1_axes[1][0].set_title(r'$W(c,F_{f_i})$')
-        f1_axes[1][1].imshow(to3(im_c, 0),cmap='gray')  # Ic
-        f1_axes[1][1].set_title(r'$I_c$')
-
-        f1_axes[2][0].imshow(to3(warped_c, 0),cmap='gray')  # I^c
-        f1_axes[2][0].set_title(r'$\hat{I}_c$')
-        f1_axes[2][1].imshow(to3(im_c, 0),cmap='gray')  # Ic
-        f1_axes[2][1].set_title(r'$I_c$')
-        fig.suptitle('VGG Loss')
-        fig.savefig("output.png")
         # loss segmentation
         # generator
         CE_loss = cross_entropy2d(fake_segmap, label_onehot.transpose(0, 1)[0].long())
@@ -536,7 +516,6 @@ def main():
     print(opt)
     print("Start to train %s!" % opt.name)
     os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu_ids
-    
     # create train dataset & loader
     train_dataset = CPDataset(opt)
     train_loader = CPDataLoader(opt, train_dataset)

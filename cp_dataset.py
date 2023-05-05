@@ -218,7 +218,7 @@ class CPDataset(data.Dataset):
             pose_data = pose_data.reshape((-1, 3))[:, :2]
         
         # load densepose
-        densepose_name = im_name.replace('image', 'image-densepose').replace(".jpg",".png")
+        densepose_name = im_name.replace('image', 'image-densepose')
         densepose_map = Image.open(osp.join(self.data_path, densepose_name))
         densepose_map = transforms.Resize(self.fine_width, interpolation=2)(densepose_map)
         densepose_map = self.transform(densepose_map)  # [-1,1]
