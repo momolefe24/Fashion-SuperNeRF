@@ -41,7 +41,7 @@ def get_opt():
     # Cuda availability
     parser.add_argument('--cuda',default=False, help='cuda or cpu')
 
-    parser.add_argument("--dataroot", default="./data/nerf_people/eric/hr")
+    parser.add_argument("--dataroot", default="./data/molefe")
     parser.add_argument("--datamode", default="train")
     parser.add_argument("--data_list", default="train_pairs.txt")
     parser.add_argument("--fine_width", type=int, default=768)
@@ -52,7 +52,8 @@ def get_opt():
     parser.add_argument('--tensorboard_dir', type=str, default='tensorboard', help='save tensorboard infos')
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='save checkpoint infos')
     # parser.add_argument('--tocg_checkpoint', type=str, help='condition generator checkpoint')
-    parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/VITON/tocg_step_230000.pth', help='tocg checkpoint')
+    # parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/VITON/tocg_step_230000.pth', help='tocg checkpoint')
+    parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/Molefe/tocg_step_280000.pth',help='tocg checkpoint')
     parser.add_argument('--gen_checkpoint', type=str, default='', help='gen checkpoint')
     parser.add_argument('--dis_checkpoint', type=str, default='', help='dis checkpoint')
 
@@ -67,7 +68,7 @@ def get_opt():
     # test
     parser.add_argument("--lpips_count", type=int, default=1000)
     parser.add_argument("--test_datasetting", default="paired")
-    parser.add_argument("--test_dataroot", default="./data/nerf_people/eric/hr")
+    parser.add_argument("--test_dataroot", default="./data/molefe")
     parser.add_argument("--test_data_list", default="test_pairs.txt")
 
     # Hyper-parameters
@@ -617,7 +618,7 @@ def main():
     opt.datamode = 'test'
     opt.data_list = opt.test_data_list
     test_dataset = CPDatasetTest(opt)
-    test_dataset = Subset(test_dataset, np.arange(500))
+    test_dataset = Subset(test_dataset, np.arange(20))
     test_loader = CPDataLoader(opt, test_dataset)
     
     # test vis loader
