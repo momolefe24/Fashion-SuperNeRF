@@ -25,4 +25,4 @@ echo ------------------------------------------------------
 nvidia-smi
 source ~/.bashrc
 conda activate NeRF
-python3 train_condition.py --cuda True --gpu_ids 0 --Ddownx2 --Ddropout --lasttvonly --interflowloss
+python3 train_generator.py --cuda True --name Molefe -b 4 -j 8 --tocg_checkpoint checkpoints/Molefe/tocg_step_300000.pth

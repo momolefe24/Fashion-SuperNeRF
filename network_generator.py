@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn import init
 from torch.nn.utils import spectral_norm
 import numpy as np
-
+import pdb
 
 class BaseNetwork(nn.Module):
     def __init__(self):
@@ -101,7 +101,7 @@ class SPADENorm(nn.Module):
     def forward(self, x, seg, misalign_mask=None):
         # Part 1. Generate parameter-free normalized activations.
         b, c, h, w = x.size()
-        noise = (torch.randn(b, w, h, 1)* self.noise_scale).transpose(1, 3)
+        noise = (torch.randn(b, w, h, 1).to('cuda')* self.noise_scale).transpose(1, 3)
         if misalign_mask is None:
             normalized = self.param_free_norm(x + noise)
         else:
@@ -215,6 +215,7 @@ class SPADEGenerator(BaseNetwork):
 
     def forward(self, x, seg):
         samples = [F.interpolate(x, size=(self.sh * 2**i, self.sw * 2**i), mode='nearest') for i in range(8)]
+        #pdb.set_trace()
         features = [self._modules['conv_{}'.format(i)](samples[i]) for i in range(8)]
 
         x = self.head_0(features[0], seg)

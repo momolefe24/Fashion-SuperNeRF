@@ -136,7 +136,7 @@ class CPDatasetTest(data.Dataset):
         im = self.transform(im_pil.convert('RGB'))
 
         # load parsing image
-        parse_name = im_name.replace('.png', '.png')
+        parse_name = im_name.replace('.jpg', '.png')
         im_parse_pil_big = Image.open(osp.join(self.data_path, 'image-parse-v3', parse_name))
         im_parse_pil = transforms.Resize(self.fine_width, interpolation=0)(im_parse_pil_big)
         parse = torch.from_numpy(np.array(im_parse_pil)[None]).long()
@@ -190,12 +190,12 @@ class CPDatasetTest(data.Dataset):
         im_c = im * pcm + (1 - pcm)
         
         # load pose points
-        pose_name = im_name.replace('.png', '_rendered.png')
+        pose_name = im_name.replace('.jpg', '_rendered.png')
         pose_map = Image.open(osp.join(self.data_path, 'openpose_img', pose_name))
         pose_map = transforms.Resize(self.fine_width, interpolation=2)(pose_map)
         pose_map = self.transform(pose_map)  # [-1,1]
         
-        pose_name = im_name.replace('.png', '_keypoints.json')
+        pose_name = im_name.replace('.jpg', '_keypoints.json')
         with open(osp.join(self.data_path, 'openpose_json', pose_name), 'r') as f:
             pose_label = json.load(f)
             pose_data = pose_label['people'][0]['pose_keypoints_2d']

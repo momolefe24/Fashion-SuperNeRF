@@ -4,6 +4,7 @@ from torch.nn import functional as F
 from torchvision.utils import make_grid as make_image_grid
 
 import argparse
+import pdb
 import os
 import time
 from cp_dataset import CPDataset, CPDataLoader
@@ -53,7 +54,7 @@ def get_opt():
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='save checkpoint infos')
     # parser.add_argument('--tocg_checkpoint', type=str, help='condition generator checkpoint')
     # parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/VITON/tocg_step_230000.pth', help='tocg checkpoint')
-    parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/Molefe/tocg_step_280000.pth',help='tocg checkpoint')
+    parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/Molefe/tocg_step_300000.pth',help='tocg checkpoint')
     parser.add_argument('--gen_checkpoint', type=str, default='', help='gen checkpoint')
     parser.add_argument('--dis_checkpoint', type=str, default='', help='dis checkpoint')
 
@@ -278,6 +279,7 @@ def train(opt, train_loader, test_loader, test_vis_loader, board, tocg, generato
         # --------------------------------------------------------------------------------------------------------------
         #                                              Train the generator
         # --------------------------------------------------------------------------------------------------------------
+        #pdb.set_trace()
         output_paired = generator(torch.cat((agnostic, pose, warped_cloth_paired), dim=1), parse)
 
         fake_concat = torch.cat((parse, output_paired), dim=1)
@@ -633,7 +635,6 @@ def main():
     
     # warping-seg Model
     tocg = None
-    
     if not opt.GT:
         input1_nc = 4  # cloth + cloth-mask
         input2_nc = opt.semantic_nc + 3  # parse_agnostic + densepose
