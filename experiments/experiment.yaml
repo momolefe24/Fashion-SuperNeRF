@@ -1,0 +1,112 @@
+---
+# ------------------- Experiment Facts
+# --cuda False --gpu_ids 0 --Ddownx2 --Ddropout --lasttvonly --interflowloss --occlusion
+experiment_facts:
+ experiment_number: 1
+ run_number: 1
+ root_path: "./"
+ story: "Pretraining the three models such that when we combine them together, and evaluate the input (shirt, pose, person), the output is a novel fashion-view"
+ research_question: "Can we synthesize a novel view fashion try-on to recreate a smart mirror using AI, instead of AR"
+ machine:
+  computer: "laptop" # [laptop, rail, cluster]
+  node: "big gpu" #[stampede, big gpu, batch]
+  gpu: "RTX 2060" # [GTX 1060, RTX 2060, GTX 3080]
+ type: "pretrain_hrviton" # Branch name
+ experiment_name: "Pretrained Virtual Try-On"
+ experiment_description: "Train A Virtual Try-On Network to transfer garments on a person's torso."
+ experiment_stragey: "Pretrain condition generator that learns to warp clothing. Then load the condition generator to train a network to synthesize a garment on a person's torso."
+ experiment_insights: "Buttoned shirts perform badly as a result of collars, and they are harder to deform."
+ tags: "Virtual Try-On, Densepose, Openpose, Human Parse Segmentation, Instance-Level Segmentation, SPADE, Image Inpainting"
+ seed: 40 # The seed value makes the results reproducible
+ device: 'cpu' # [cpu, cuda, cuda:0, cuda:1]
+
+
+# ------------------- Checkpoint Facts
+checkpoint_facts:
+ root_path: "checkpoints"
+ condition_generator:
+  load_checkpoint: True
+  load_checkpoint_step: 280000
+  save_checkpoint: False
+  generator: "tocg_step_%06d.pth"
+  discriminator: "D_step_%06d.pth"
+ VITON_generator:
+  load_checkpoint: False
+  load_checkpoint_step: 120000
+  save_checkpoint: True
+  generator: "gen_step_%06d.pth"
+  discriminator: "D_step_%06d.pth"
+
+
+# ------------------- Result Facts
+results_facts:
+ experiment_number: 1
+ run_number: 1
+ root_path: "Results"
+ condition_results:
+  condition_path: "Results/Clothing_Warping"
+ viton_results:
+  generator_path: "Results/VITON"
+ summary_facts:
+  root_path: "Summary"
+  tensorboard_count: 100
+  display_count: 100
+  save_count: 10000
+  load_step: 0
+  keep_step: 300000
+  condition_summary:
+   weights_dir: "weights/Clothing_Warping"
+   samples_dir: "samples/Clothing_Warping"
+   test_setting: "unpaired"
+   writer_logs_dir: "log"
+  generator_summary:
+   weights_dir: "weights/VITON"
+   samples_dir: "samples/VITON"
+   writer_logs_dir: "log"
+
+# ------------------- Dataset Facts
+dataset_facts:
+ root_path: "./data"
+ person: "molefe"
+ train_list: "train_pairs.txt"
+ test_list: "test_pairs.txt"
+ image_shape: (1024, 768)
+ downsample_image_shape: (256, 192) # x4 downsample
+ transforms:
+  mean: (0, 0, 0)
+  std: (1, 1, 1)
+
+
+# ------------------- Hyperparameter Facts
+hyperparameter_facts:
+ batch_size: 8
+ num_workers: 4
+ epochs: 5000
+ warping_hyperparameters:
+  input_channels:
+   cloth: 4 # Cloth + Cloth Mask
+   person_representation: 16 # Human Agnosic Parse Segmentation + Denpose
+  resblock_channel: 96
+  output_channel: 13
+  upsampling: 'bilinear' # [nearest, bilinear]
+  output_layer: 'relu'
+  clothmask_composition: "warp_grad"
+  lasttvonly: True
+  loss_functions:
+   cross_entropy_loss_lambda: 10 # Initial learning rate for ADAM
+   GAN_lambda: 1
+   total_variation_loss_lambda: 2
+   edgeaware_total_variation_loss: "no_edge"
+   interflow_loss: True # Intermediate Flow Loss
+  generator:
+   learning_rate: 0.0002 # Generator initial learning rate for ADAM
+  occlusion: True
+  discriminator:
+   learning_rate: 0.0002 # Discriminator initial learning rate for ADAM
+   spectral_normalization: False # Apply spectral normalization to discriminator
+ viton_hyperparameters:
+  output_layer: 'relu'
+  discriminator:
+   downsample: True # Downsample discriminator's input to increase receptive field
+   dropout: True # Apply dropout to the discriminator
+
