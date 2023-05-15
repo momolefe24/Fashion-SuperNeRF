@@ -3,23 +3,33 @@ from config import *
 class ConditionGenerator(nn.Module):
     def __init__(self, clothing_info_channel=4, parsing_dense_channel=16, resblock_channel=96, output_channel=13):
         super(ConditionGenerator, self).__init__()
-        self.ClothEncoder = nn.Sequential(
-            ResBlock(clothing_info_channel, resblock_channel),  # (128, 96, 96)
-            ResBlock(resblock_channel, resblock_channel * 2),  # (64, 48, 198)
-            ResBlock(resblock_channel * 2, resblock_channel * 4),  # (32, 24, 384)
-            ResBlock(resblock_channel * 4, resblock_channel * 4),  # (16, 12, 384)
-            ResBlock(resblock_channel * 4, resblock_channel * 4)  # (8, 6, 384)
-        )
-
-        self.PoseEncoder = nn.Sequential(
-            ResBlock(parsing_dense_channel, resblock_channel),
+        self.cloth_flow_list = [ResBlock(clothing_info_channel, resblock_channel),
             ResBlock(resblock_channel, resblock_channel * 2),
             ResBlock(resblock_channel * 2, resblock_channel * 4),
             ResBlock(resblock_channel * 4, resblock_channel * 4),
-            ResBlock(resblock_channel * 4, resblock_channel * 4)
-        )
+            ResBlock(resblock_channel * 4, resblock_channel * 4)]
+        self.parse_list = [ResBlock(parsing_dense_channel, resblock_channel),
+            ResBlock(resblock_channel, resblock_channel * 2),
+            ResBlock(resblock_channel * 2, resblock_channel * 4),
+            ResBlock(resblock_channel * 4, resblock_channel * 4),
+            ResBlock(resblock_channel * 4, resblock_channel * 4)]
 
 
+        self.ClothEncoder = nn.Sequential(*self.cloth_flow_list)
+        self.PoseEncoder = nn.Sequential(*self.parse_list)
+
+    def feature_pyramid(self, input, list):
+        E_list = []
+        for index, cloth_flow in enumerate(list):
+            if index == 0:
+                E_list.append(cloth_flow(input))
+            else:
+                E_list.append(cloth_flow(E_list[index - 1]))
+        return E_list
+    def forward(self, cloth_input,parsing_dense_input):
+        E1_list = self.feature_pyramid(cloth_input, self.cloth_flow_list)
+        E2_list = self.feature_pyramid(parsing_dense_input, self.parse_list)
+        return E1_list, E2_list
 class Downsampling(nn.Module):
     def __init__(self, input_channel, output_channel, use_bias=False):
         super(Downsampling, self).__init__()
