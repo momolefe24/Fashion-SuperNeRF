@@ -11,16 +11,10 @@ clothing_info = torch.cat([cloth, cloth_masks], 1)
 print("---------------------- CLOTHING SHAPE----------------------------")
 print(clothing_info.shape)
 
-parse = torch.randn(8, 13, 256, 192) # 8 Examples of human parse segmentation with removed torso
-dense = torch.randn(8, 3, 256, 192) # 8 Examples of densepose
+parse = torch.randn(1, 13, 256, 192) # 8 Examples of human parse segmentation with removed torso
+dense = torch.randn(1, 3, 256, 192) # 8 Examples of densepose
 parsing_dense = torch.cat([parse, dense], 1)
 print("---------------------- Person Agnostic Representatio & Pose SHAPE----------------------------")
 print(parsing_dense.shape)
 
-print("---------------------- TESTING THE Cloth Flow List----------------------------")
-encodings = tocg(clothing_info, parsing_dense)
-print(f'Clothing Encoder cloth has shapes: ')
-for encoding in encodings[0]:
-    print(encoding.shape)
-print()
-""" Document the output channel of the following"""
+tocg(clothing_info, parsing_dense)
