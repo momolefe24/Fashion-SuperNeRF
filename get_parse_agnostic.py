@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 import argparse
 
 from tqdm import tqdm
-
+# --data_path data/molefe/train --output_path output2
 
 def get_im_parse_agnostic(im_parse, pose_data, w=768, h=1024):
     parse_array = np.array(im_parse)
@@ -49,7 +49,7 @@ if __name__=="__main__":
     parser.add_argument('--output_path', type=str, help="output dir")
 
     args = parser.parse_args()
-    data_path = args.data_path
+    data_path = args.data_path 
     output_path = args.output_path
     
     os.makedirs(output_path, exist_ok=True)
