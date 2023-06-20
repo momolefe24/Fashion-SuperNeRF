@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import yaml
 from torchvision.utils import make_grid
 from networks import make_grid as mkgrid
 
@@ -49,15 +49,12 @@ def remove_overlap(seg_out, warped_cm):
 def get_opt():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--name", default="Molefe")
+    parser.add_argument("--name", default="RAIL_experiment_1")
     parser.add_argument("--gpu_ids", default="")
     parser.add_argument('-j', '--workers', type=int, default=4)
     parser.add_argument('-b', '--batch-size', type=int, default=8)
     parser.add_argument('--fp16', action='store_true', help='use amp')
-
-    # parser.add_argument("--dataroot", default="./data/nerf_people/eric/hr")
-    # parser.add_argument("--dataroot", default="./data/viton")
-    parser.add_argument("--dataroot", default="./data/molefe")
+    parser.add_argument("--dataroot", default="./data/rail")
     parser.add_argument("--datamode", default="train")
     parser.add_argument("--data_list", default="train_pairs.txt")
     parser.add_argument("--fine_width", type=int, default=192)
@@ -65,8 +62,8 @@ def get_opt():
 
     parser.add_argument('--tensorboard_dir', type=str, default='tensorboard', help='save tensorboard infos')
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='save checkpoint infos')
-    # parser.add_argument('--tocg_checkpoint', type=str, default='', help='tocg checkpoint')
-    parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/VITON/Original Virtual Try-On/tocg_step_120000.pth', help='tocg checkpoint')
+    parser.add_argument('--tocg_checkpoint', type=str, default='', help='tocg checkpoint')
+    # parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/VITON/Original Virtual Try-On/tocg_step_120000.pth', help='tocg checkpoint')
 
     parser.add_argument("--tensorboard_count", type=int, default=100)
     parser.add_argument("--display_count", type=int, default=100)
@@ -98,7 +95,7 @@ def get_opt():
     parser.add_argument("--no_test_visualize", action='store_true')    
     parser.add_argument("--num_test_visualize", type=int, default=3)
     parser.add_argument("--test_datasetting", default="unpaired")
-    parser.add_argument("--test_dataroot", default="./data/molefe")
+    parser.add_argument("--test_dataroot", default="./data/rail")
     parser.add_argument("--test_data_list", default="test_pairs.txt")
     
 
@@ -112,7 +109,15 @@ def get_opt():
     parser.add_argument('--val_count', type=int, default='1000')
     parser.add_argument('--spectral', action='store_true', help="Apply spectral normalization to D")
     parser.add_argument('--occlusion', action='store_true', help="Occlusion handling")
-    
+
+    ''' Experiment details'''
+    parser.add_argument("--experiment_research_question", default="Can we synthesize a novel view fashion try-on to recreate a smart mirror using AI, instead of AR")
+    parser.add_argument("--experiment_node", default="biggpu")
+    parser.add_argument("--experiment_gpu", default="3090")
+    parser.add_argument("--experiment_change_1", default="Tried with occlusion")
+    parser.add_argument("--experiment_insights", default='Buttoned shirts perform badly as a result of collars, and they are harder to deform.')
+
+
     opt = parser.parse_args()
     return opt
 
@@ -537,7 +542,8 @@ def main():
     if not os.path.exists(opt.tensorboard_dir):
         os.makedirs(opt.tensorboard_dir)
     board = SummaryWriter(log_dir=os.path.join(opt.tensorboard_dir, opt.name))
-
+    with open(f'{os.path.join(opt.tensorboard_dir, opt.name)}/experiment.yml', 'w') as outfile:
+        yaml.dump(vars(opt), outfile, default_flow_style=False)
     # Model
     input1_nc = 4  # cloth + cloth-mask
     input2_nc = opt.semantic_nc + 3  # parse_agnostic + densepose
