@@ -49,7 +49,7 @@ def remove_overlap(seg_out, warped_cm):
 def get_opt():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--name", default="RAIL_experiment_1")
+    parser.add_argument("--name", default="RAIL_Transfer_Learning_experiment_1")
     parser.add_argument("--gpu_ids", default="")
     parser.add_argument('-j', '--workers', type=int, default=4)
     parser.add_argument('-b', '--batch-size', type=int, default=8)
@@ -551,8 +551,9 @@ def main():
     D = define_D(input_nc=input1_nc + input2_nc + opt.output_nc, Ddownx2 = opt.Ddownx2, Ddropout = opt.Ddropout, n_layers_D=3, spectral = opt.spectral, num_D = opt.num_D)
     
     # Load Checkpoint
-    if not opt.tocg_checkpoint == '' and os.path.exists(opt.tocg_checkpoint):
-        load_checkpoint(tocg, opt.tocg_checkpoint, opt)
+    # if not opt.tocg_checkpoint == '' and os.path.exists(opt.tocg_checkpoint):
+    #     load_checkpoint(tocg, opt.tocg_checkpoint, opt)
+    load_checkpoint(tocg, 'tocg_step_250000.pth', opt)
 
     # Train
     train(opt, train_loader, val_loader, test_loader, board, tocg, D)
