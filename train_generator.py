@@ -5,6 +5,7 @@ from torchvision.utils import make_grid as make_image_grid
 
 import argparse
 import pdb
+import yaml
 import os
 import time
 from cp_dataset import CPDataset, CPDataLoader
@@ -54,7 +55,7 @@ def get_opt():
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='save checkpoint infos')
     # parser.add_argument('--tocg_checkpoint', type=str, help='condition generator checkpoint')
     # parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/VITON/tocg_step_230000.pth', help='tocg checkpoint')
-    parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/Molefe/tocg_step_300000.pth',help='tocg checkpoint')
+    parser.add_argument('--tocg_checkpoint', type=str, default='',help='tocg checkpoint')
     parser.add_argument('--gen_checkpoint', type=str, default='', help='gen checkpoint')
     parser.add_argument('--dis_checkpoint', type=str, default='', help='dis checkpoint')
 
@@ -110,7 +111,7 @@ def get_opt():
     parser.add_argument("--out_layer", choices=['relu', 'conv'], default="relu")
     parser.add_argument("--clothmask_composition", type=str, choices=['no_composition', 'detach', 'warp_grad'], default='warp_grad')
     # visualize
-    parser.add_argument("--num_test_visualize", type=int, default=2)
+    parser.add_argument("--num_test_visualize", type=int, default=3)
 
     opt = parser.parse_args()
 
@@ -279,7 +280,6 @@ def train(opt, train_loader, test_loader, test_vis_loader, board, tocg, generato
         # --------------------------------------------------------------------------------------------------------------
         #                                              Train the generator
         # --------------------------------------------------------------------------------------------------------------
-        #pdb.set_trace()
         output_paired = generator(torch.cat((agnostic, pose, warped_cloth_paired), dim=1), parse)
 
         fake_concat = torch.cat((parse, output_paired), dim=1)
@@ -480,7 +480,7 @@ def train(opt, train_loader, test_loader, test_vis_loader, board, tocg, generato
                     board.add_images(f'test_images/{i}', grid.unsqueeze(0), step + 1)
                 
             generator.train()
-   
+
         if (step + 1) % opt.lpips_count == 0:
             generator.eval()
             T2 = transforms.Compose([transforms.Resize((128, 128))])
@@ -489,7 +489,7 @@ def train(opt, train_loader, test_loader, test_vis_loader, board, tocg, generato
             
             with torch.no_grad():
                 print("LPIPS")
-                for i in tqdm(range(1)):
+                for i in tqdm(range(500)):
                     inputs = test_loader.next_batch()
                     # input
                     agnostic = inputs['agnostic'].cuda()
@@ -612,10 +612,9 @@ def main():
 
     # create dataloader
     train_loader = CPDataLoader(opt, train_dataset)
-    
 
     # test dataloader
-    opt.batch_size = 2
+    opt.batch_size = 1
     opt.dataroot = opt.test_dataroot
     opt.datamode = 'test'
     opt.data_list = opt.test_data_list
@@ -632,15 +631,14 @@ def main():
     if not os.path.exists(opt.tensorboard_dir):
         os.makedirs(opt.tensorboard_dir)
     board = SummaryWriter(log_dir=os.path.join(opt.tensorboard_dir, opt.name))
-    
+    with open(f'{os.path.join(opt.tensorboard_dir, opt.name)}/experiment.yml', 'w') as outfile:
+        yaml.dump(vars(opt), outfile, default_flow_style=False)
     # warping-seg Model
-    tocg = None
-    if not opt.GT:
-        input1_nc = 4  # cloth + cloth-mask
-        input2_nc = opt.semantic_nc + 3  # parse_agnostic + densepose
-        tocg = ConditionGenerator(opt, input1_nc=input1_nc, input2_nc=input2_nc, output_nc=13, ngf=96, norm_layer=nn.BatchNorm2d)
-        # Load Checkpoint
-        load_checkpoint(tocg, opt.tocg_checkpoint, opt)
+    input1_nc = 4  # cloth + cloth-mask
+    input2_nc = opt.semantic_nc + 3  # parse_agnostic + densepose
+    tocg = ConditionGenerator(opt, input1_nc=input1_nc, input2_nc=input2_nc, output_nc=13, ngf=96, norm_layer=nn.BatchNorm2d)
+    # Load Checkpoint
+    load_checkpoint(tocg, opt.tocg_checkpoint, opt)
 
     # Generator model
     generator = SPADEGenerator(opt, 3+3+3)
