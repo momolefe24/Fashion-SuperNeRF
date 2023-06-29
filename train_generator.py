@@ -43,7 +43,7 @@ def get_opt():
     # Cuda availability
     parser.add_argument('--cuda',default=False, help='cuda or cpu')
 
-    parser.add_argument("--dataroot", default="./data/molefe")
+    parser.add_argument("--dataroot", default="./data/rail")
     parser.add_argument("--datamode", default="train")
     parser.add_argument("--data_list", default="train_pairs.txt")
     parser.add_argument("--fine_width", type=int, default=768)
@@ -70,7 +70,7 @@ def get_opt():
     # test
     parser.add_argument("--lpips_count", type=int, default=1000)
     parser.add_argument("--test_datasetting", default="paired")
-    parser.add_argument("--test_dataroot", default="./data/molefe")
+    parser.add_argument("--test_dataroot", default="./data/rail")
     parser.add_argument("--test_data_list", default="test_pairs.txt")
 
     # Hyper-parameters

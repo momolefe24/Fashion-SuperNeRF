@@ -520,7 +520,7 @@ def main():
     opt = get_opt()
     print(opt)
     print("Start to train %s!" % opt.name)
-    os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu_ids
+    # os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu_ids
     # create train dataset & loader
     train_dataset = CPDataset(opt)
     train_loader = CPDataLoader(opt, train_dataset)
