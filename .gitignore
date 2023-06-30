@@ -3,3 +3,4 @@ Checkpoints/
 Summary/
 tensorboard/
 eval_models/
+*.pt
