@@ -60,9 +60,9 @@ def train(opt, net):
         loss_vgg_avg = AverageMeter()
         for i, inputs in enumerate(tqdm.tqdm(train_loader)):
             iterations+=1
-            img_names = inputs['img_name']
+            img_names = inputs['im_name']
             c_names = inputs['c_name']['paired']
-            img = inputs['img'].cuda()
+            img = inputs['image'].cuda()
             img_agnostic = inputs['img_agnostic'].cuda()
             pose = inputs['pose'].cuda()
             cloth_img = inputs['cloth']['paired'].cuda()

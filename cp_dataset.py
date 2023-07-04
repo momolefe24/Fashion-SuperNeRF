@@ -245,6 +245,7 @@ class CPDataset(data.Dataset):
             'parse': new_parse_map, # GAN Loss real
             'pcm': pcm,             # L1 Loss & vis
             'parse_cloth': im_c,    # VGG Loss & vis
+            'img_agnostic': image_parse_agnostic,
             # visualization & GT
             'image':    im,         # for visualization
             }
@@ -400,6 +401,7 @@ class CPDatasetTest(data.Dataset):
             'pcm': pcm,             # L1 Loss & vis
             'parse_cloth': im_c,    # VGG Loss & vis
             # visualization
+            'img_agnostic': image_parse_agnostic,
             'image':    im,         # for visualization
             }
         
