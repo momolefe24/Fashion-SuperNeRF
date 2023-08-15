@@ -87,7 +87,7 @@ def get_opt():
                         help='number of additional fine samples per ray')
     parser.add_argument("--nerf_perturb", type=float, default=1.,
                         help='set to 0. for no jitter, 1. for jitter')
-    parser.add_argument("--nerf_use_viewdirs", action='store_true',
+    parser.add_argument("--nerf_use_viewdirs",default=True, action='store_true',
                         help='use full 5D input instead of 3D')
     parser.add_argument("--nerf_i_embed", type=int, default=0,
                         help='set 0 for default positional encoding, -1 for none')
