@@ -8,7 +8,7 @@ from torchvision.utils import make_grid as make_image_grid
 from torchvision.utils import save_image
 import argparse
 """ ============== NeRF =============="""
-from NeRF.test_helper import probe
+# from NeRF.test_helper import probe
 """ ============== VITON =============="""
 from VITON.cp_dataset_test import CPDatasetTest, CPDataLoader
 from VITON.networks import ConditionGenerator, load_checkpoint, make_grid
@@ -152,7 +152,7 @@ def test(opt, test_loader, tocg, generator):
 
 
             # down
-            potential_rgb = probe(transform_matrix[0], int(inputs['H'].item()), int(inputs['W'].item()), inputs['K'][0].cpu().numpy(), num=0)
+            # potential_rgb = probe(transform_matrix[0], int(inputs['H'].item()), int(inputs['W'].item()), inputs['K'][0].cpu().numpy(), num=0)
             pose_map_down = F.interpolate(pose_map, size=(256, 192), mode='bilinear')
             pre_clothes_mask_down = F.interpolate(pre_clothes_mask, size=(256, 192), mode='nearest')
             input_label_down = F.interpolate(input_label, size=(256, 192), mode='bilinear')

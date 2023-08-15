@@ -104,26 +104,31 @@ def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedi
 
 
 def create_nerf(args):
-    embed_fn, input_ch = get_embedder(args.multires, args.i_embed)
+    embed_fn, input_ch = get_embedder(args.nerf_multires, args.nerf_i_embed)
     input_ch_views = 0
     embeddirs_fn = None
-    if args.use_viewdirs:
-        embeddirs_fn, input_ch_views = get_embedder(args.multires_views, args.i_embed)
-    output_ch = 5 if args.N_importance > 0 else 4
+    if args.nerf_use_viewdirs:
+        embeddirs_fn, input_ch_views = get_embedder(args.nerf_multires_views, args.nerf_i_embed)
+    output_ch = 5 if args.nerf_N_importance > 0 else 4
     skips = [4]
-    model = NeRF(D=args.netdepth, W=args.netwidth, input_ch=input_ch, output_ch=output_ch, skips=skips, input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+    model = NeRF(D=args.nerf_netdepth, W=args.nerf_netwidth, input_ch=input_ch, output_ch=output_ch, skips=skips, input_ch_views=input_ch_views, use_viewdirs=args.nerf_use_viewdirs).to(device)
     grad_vars = list(model.parameters())
     model_fine = None
-    if args.N_importance > 0:
-        model_fine = NeRF(D=args.netdepth_fine, W=args.netwidth_fine, input_ch=input_ch, output_ch=output_ch, skips=skips, input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+    if args.nerf_N_importance > 0:
+        model_fine = NeRF(D=args.nerf_netdepth_fine, W=args.nerf_netwidth_fine, input_ch=input_ch, output_ch=output_ch, skips=skips, input_ch_views=input_ch_views, use_viewdirs=args.nerf_use_viewdirs).to(device)
         grad_vars += list(model_fine.parameters())
-    network_query_fn = lambda inputs, viewdirs, network_fn : run_network(inputs, viewdirs, network_fn,embed_fn=embed_fn,embeddirs_fn=embeddirs_fn,netchunk=args.netchunk)
+    network_query_fn = lambda inputs, viewdirs, network_fn : run_network(inputs, viewdirs, network_fn,embed_fn=embed_fn,embeddirs_fn=embeddirs_fn,netchunk=args.nerf_netchunk)
     # Create optimizer
-    optimizer = torch.optim.Adam(params=grad_vars, lr=args.lrate, betas=(0.9, 0.999))
+    optimizer = torch.optim.Adam(params=grad_vars, lr=args.nerf_lrate, betas=(0.9, 0.999))
     start = 0
-    basedir = args.basedir
-    expname = args.expname
+
     """ Come back to fix this to ensure we can load the model"""
+    # ckpt = torch.load(args.nerf_checkpoint)
+    # start = ckpt['global_step']
+    # optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+    # model.load_state_dict(ckpt['network_fn_state_dict'])
+    # if model_fine is not None:
+    #     model_fine.load_state_dict(ckpt['network_fine_state_dict'])
     # if checkpoint_facts['load_checkpoint']:
     #     ckpt_path = os.path.join(paths_[1], nerf_checkpoint['checkpoint_nerf'])
     #     ckpt = torch.load(ckpt_path)
@@ -135,19 +140,19 @@ def create_nerf(args):
     #         model_fine.load_state_dict(ckpt['network_fine_state_dict'])
     render_kwargs_train = {
         'network_query_fn' : network_query_fn,
-        'perturb' : args.perturb,
-        'N_importance' : args.N_importance,
+        'perturb' : args.nerf_perturb,
+        'N_importance' : args.nerf_N_importance,
         'network_fine' : model_fine,
-        'N_samples' : args.N_samples,
+        'N_samples' : args.nerf_N_samples,
         'network_fn' : model,
-        'use_viewdirs' : args.use_viewdirs,
-        'white_bkgd' : args.white_bkgd,
-        'raw_noise_std' : args.raw_noise_std,
+        'use_viewdirs' : args.nerf_use_viewdirs,
+        'white_bkgd' : args.nerf_white_bkgd,
+        'raw_noise_std' : args.nerf_raw_noise_std,
     }
-    if args.dataset_type != 'llff' or args.no_ndc:
+    if args.nerf_dataset_type != 'llff' or args.nerf_no_ndc:
         print('Not ndc!')
         render_kwargs_train['ndc'] = False
-        render_kwargs_train['lindisp'] = args.lindisp
+        render_kwargs_train['lindisp'] = args.nerf_lindisp
     render_kwargs_test = {k : render_kwargs_train[k] for k in render_kwargs_train}
     render_kwargs_test['perturb'] = False
     render_kwargs_test['raw_noise_std'] = 0.
@@ -348,14 +353,14 @@ def config_parser():
 
 
 
-parser = config_parser()
-args = parser.parse_args()
+# parser = config_parser()
+# args = parser.parse_args()
 
 
-# images, poses, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip)
+# images, poses, render_poses, hwf, i_split = load_blender_data(args.nerf_datadir, args.nerf_half_res, args.nerf_testskip)
 # images, poses, render_poses, hwf, _ = load_nerf_data()
 #
-near, far = 2., 6.
+# near, far = 2., 6.
 #
 # images = images[..., :3]
 # H, W, focal = hwf
@@ -363,19 +368,19 @@ near, far = 2., 6.
 # K = np.array([[focal, 0, 0.5*W],[0, focal, 0.5*H],[0, 0, 1]])
 
 # Create NeRF network
-render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer = create_nerf(args)
-bds_dict = {
-        'near' : near,
-        'far' : far,
-    }
-render_kwargs_test.update(bds_dict)
-save_image = lambda title, torch_img: plt.imsave(f"{title}.png", torch_img.cpu().numpy())
+# render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer = create_nerf(args)
+# bds_dict = {
+#         'near' : near,
+#         'far' : far,
+#     }
+# render_kwargs_test.update(bds_dict)
+# save_image = lambda title, torch_img: plt.imsave(f"{title}.png", torch_img.cpu().numpy())
+# #
+# def probe(pose, H, W, K, num=0):
+# 	c2w = pose[:3, :4]
+# 	with torch.no_grad():
+# 		rgb, disp, acc, _ = render(H, W, K, chunk=args.nerf_chunk, c2w=c2w, **render_kwargs_test)
+# 	return rgb
 #
-def probe(pose, H, W, K, num=0):
-	c2w = pose[:3, :4]
-	with torch.no_grad():
-		rgb, disp, acc, _ = render(H, W, K, chunk=args.chunk, c2w=c2w, **render_kwargs_test)
-	return rgb
-
-
+#
 

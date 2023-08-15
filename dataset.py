@@ -1,6 +1,8 @@
 #coding=utf-8
+import sys
 import torch
 import torch.utils.data as data
+import os
 import torchvision.transforms as transforms
 from PIL import Image, ImageDraw
 from glob import glob
@@ -18,16 +20,20 @@ class FashionNeRFDatasetTest(data.Dataset):
         # base setting
         self.opt = opt
         self.root = opt.dataroot
+        self.cihp = "./cihp_pgn.sh"
+        self.detectron = "./densepose.sh"
+        self.openpose = "./openpose.sh"
+        self.parse_agnostic = "./parse_agnostic.sh"
         self.person = opt.person
         self.clothing = opt.clothing
         self.in_shop_clothing = opt.in_shop_clothing
+        self.person_clothing = f"{self.person}_{self.clothing}"
         self.datamode = opt.datamode  # train or test or self-defined
-        self.data_list = opt.data_list
         self.fine_height = opt.fine_height
         self.fine_width = opt.fine_width
         self.semantic_nc = opt.semantic_nc
-        self.data_path = osp.join(opt.dataroot, opt.datamode)
-        self.transforms_data = get_transforms_data(opt)
+        self.data_path = osp.join(opt.dataroot, self.person_clothing)
+        self.transforms_data = get_transforms_data(self.data_path, self.person_clothing)
         self.camera_angle_x = self.transforms_data['camera_angle_x']
         self.camera_angle_y = self.transforms_data['camera_angle_y']
         self.fl_x = self.transforms_data['fl_x']
@@ -52,9 +58,8 @@ class FashionNeRFDatasetTest(data.Dataset):
         im_names = []
         c_names = []
         transform_matrices =[]
-        person = f"image/{opt.person}_{opt.clothing}*"
-        data_items = glob(osp.join(self.data_path, person))
-        self.data_items_ = glob(osp.join(self.data_path, person))
+        data_items = glob(f"{self.data_path}/image/*")
+        # self.data_items_ = glob(osp.join(self.data_path, person))
         for data_item in data_items:
             data_string = data_item.split("/")[-1]
             im_names.append(data_string)
@@ -162,16 +167,29 @@ class FashionNeRFDatasetTest(data.Dataset):
             cm[key].unsqueeze_(0)
 
         # person image
+        filename = im_name.split("/")[-1]
         im_pil_big = Image.open(osp.join(self.data_path, im_name))
         im_pil = transforms.Resize(self.fine_width, interpolation=2)(im_pil_big)
         im = self.transform(im_pil.convert('RGB'))
 
         # load parsing image
-        parse_name = im_name.replace('image', 'image-parse-v3').replace('.jpg', '.png')  # VITON
-        im_parse_pil_big = Image.open(osp.join(self.data_path, parse_name))
-        im_parse_pil = transforms.Resize(self.fine_width, interpolation=0)(im_parse_pil_big)
-        parse = torch.from_numpy(np.array(im_parse_pil)[None]).long()
-        im_parse = self.transform(im_parse_pil.convert('RGB'))
+        # self.cihp += f" {self.root} {self.person} {self.clothing} {filename}"
+        # cihp_err = os.system(self.cihp)
+
+        if 1 == 0:
+            print("FATAL: CIHP command failed")
+            sys.exit(1)
+            # sys.exit(cihp_err)
+        else:
+            cihp_name = im_name.replace('image', 'cihp').replace('.jpg', '.png')
+            if os.path.isfile(osp.join(self.data_path, cihp_name)):
+                # parse_name = im_name.replace('image', 'cihp').replace('.jpg', '.png')  # VITON
+                im_parse_pil_big = Image.open(osp.join(self.data_path, cihp_name))
+                im_parse = transforms.Resize(self.fine_width, interpolation=0)(im_parse_pil_big)
+                parse = torch.from_numpy(np.array(im_parse)[None]).long()
+            else:
+                print("FATAL: Could not save CIHP generation")
+                sys.exit(1)
 
         labels = {
             0: ['background', [0, 10]],
@@ -202,11 +220,54 @@ class FashionNeRFDatasetTest(data.Dataset):
             for label in labels[i][1]:
                 parse_onehot[0] += parse_map[label] * i
 
+        # load pose points
+        # self.openpose += f" {self.root} {self.person} {self.clothing} {filename}"
+        # openpose_err = os.system(self.openpose)
+        if 1 == 0:
+            print("FATAL: Openpose command failed")
+            sys.exit(1)
+            # sys.exit(openpose_err)
+        else:
+            openpose_name = im_name.replace('image', 'openpose_img').replace('.jpg', '_rendered.png')
+            openpose_json = im_name.replace('image', 'openpose_img').replace('.jpg', '_rendered.png')
+            if os.path.isfile(osp.join(self.data_path, openpose_name)):
+                # parse_name = im_name.replace('image', 'cihp').replace('.jpg', '.png')  # VITON
+                pose_map = Image.open(osp.join(self.data_path, openpose_name))
+                pose_map = transforms.Resize(self.fine_width, interpolation=2)(pose_map)
+                pose_map = self.transform(pose_map)  # [-1,1]
+
+                pose_name = im_name.replace('image', 'openpose_json').replace('.jpg',
+                                                                              '_keypoints.json')  # VITON
+                with open(osp.join(self.data_path, pose_name), 'r') as f:
+                    pose_label = json.load(f)
+                    pose_data = pose_label['people'][0]['pose_keypoints_2d']
+                    pose_data = np.array(pose_data)
+                    pose_data = pose_data.reshape((-1, 3))[:, :2]
+            else:
+                print("FATAL: Could not save Openpose generation")
+                sys.exit(1)
+
+
+
         # load image-parse-agnostic
-        image_parse_agnostic = Image.open(osp.join(self.data_path, parse_name.replace('image-parse-v3', 'image-parse-agnostic-v3.2')))
-        image_parse_agnostic = transforms.Resize(self.fine_width, interpolation=0)(image_parse_agnostic)
-        parse_agnostic = torch.from_numpy(np.array(image_parse_agnostic)[None]).long()
-        image_parse_agnostic = self.transform(image_parse_agnostic.convert('RGB'))
+        # self.parse_agnostic += f" {self.root} {self.person} {self.clothing} {filename}"
+        # parse_agnostic_err = os.system(self.parse_agnostic)
+        if 1 == 0:
+            print("FATAL: Parse agnostic command failed")
+            sys.exit(1)
+            # sys.exit(parse_agnostic_err)
+        else:
+            parse_agnostic_name = im_name.replace('image', 'image-parse-agnostic').replace('.jpg', '.png')
+            if os.path.isfile(osp.join(self.data_path, parse_agnostic_name)):
+                # parse_name = im_name.replace('image', 'cihp').replace('.jpg', '.png')  # VITON
+                image_parse_agnostic = Image.open(osp.join(self.data_path,parse_agnostic_name))
+                image_parse_agnostic = transforms.Resize(self.fine_width, interpolation=0)(image_parse_agnostic)
+                parse_agnostic = torch.from_numpy(np.array(image_parse_agnostic)[None]).long()
+                image_parse_agnostic = self.transform(image_parse_agnostic.convert('RGB'))
+            else:
+                print("FATAL: Could not save Parse agnostic generation")
+                sys.exit(1)
+
 
         parse_agnostic_map = torch.FloatTensor(20, self.fine_height, self.fine_width).zero_()
         parse_agnostic_map = parse_agnostic_map.scatter_(0, parse_agnostic, 1.0)
@@ -219,24 +280,24 @@ class FashionNeRFDatasetTest(data.Dataset):
         pcm = new_parse_map[3:4]
         im_c = im * pcm + (1 - pcm)
 
-        # load pose points
-        pose_name = im_name.replace('image', 'openpose_img').replace('.jpg', '_rendered.png')  # VITON
-        pose_map = Image.open(osp.join(self.data_path, pose_name))
-        pose_map = transforms.Resize(self.fine_width, interpolation=2)(pose_map)
-        pose_map = self.transform(pose_map)  # [-1,1]
-
-        pose_name = im_name.replace('image', 'openpose_json').replace('.jpg', '_keypoints.json')  # VITON
-        with open(osp.join(self.data_path, pose_name), 'r') as f:
-            pose_label = json.load(f)
-            pose_data = pose_label['people'][0]['pose_keypoints_2d']
-            pose_data = np.array(pose_data)
-            pose_data = pose_data.reshape((-1, 3))[:, :2]
 
         # load densepose
-        densepose_name = im_name.replace('image', 'image-densepose')
-        densepose_map = Image.open(osp.join(self.data_path, densepose_name))
-        densepose_map = transforms.Resize(self.fine_width, interpolation=2)(densepose_map)
-        densepose_map = self.transform(densepose_map)  # [-1,1]
+        # self.densepose += f" {self.root} {self.person} {self.clothing} {filename}"
+        # densepose_err = os.system(self.densepose)
+        if 1 == 0:
+            print("FATAL: Densepose command failed")
+            sys.exit(1)
+            # sys.exit(densepose_err)
+        else:
+            densepose_name = im_name.replace('image', 'densepose')
+            if os.path.isfile(osp.join(self.data_path, densepose_name)):
+                # parse_name = im_name.replace('image', 'cihp').replace('.jpg', '.png')  # VITON
+                densepose_map = Image.open(osp.join(self.data_path, densepose_name))
+                densepose_map = transforms.Resize(self.fine_width, interpolation=2)(densepose_map)
+                densepose_map = self.transform(densepose_map)  # [-1,1]
+            else:
+                print("FATAL: Could not save Densepose generation")
+                sys.exit(1)
 
 
         agnostic = self.get_agnostic(im_pil_big, im_parse_pil_big, pose_data)
@@ -249,7 +310,7 @@ class FashionNeRFDatasetTest(data.Dataset):
         result = {
             'c_name': c_name,  # for visualization
             'im_name': im_name,  # for visualization or ground truth,
-            'transform_matrix': transform_matrix,
+            'transform_matrix': torch.tensor(transform_matrix),
             'H': self.H,
             'W': self.W,
             'K': K,

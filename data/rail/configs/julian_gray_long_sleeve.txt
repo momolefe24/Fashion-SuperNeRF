@@ -1,6 +1,6 @@
 expname = original_nerf
 basedir = ../logs
-datadir = ./data/rail/test/image
+datadir = ./data/rail/temp/image
 dataset_type = blender
 
 no_batching = True
