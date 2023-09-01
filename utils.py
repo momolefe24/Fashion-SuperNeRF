@@ -21,7 +21,7 @@ def get_opt():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--name", default="Inference Pipeline")
-    parser.add_argument('--cuda',default=False, help='cuda or cpu')
+    parser.add_argument('--cuda',default=True, help='cuda or cpu')
     parser.add_argument('-j', '--workers', type=int, default=2)
     parser.add_argument('-b', '--batch-size', type=int, default=1)
     parser.add_argument('--person', default="julian")

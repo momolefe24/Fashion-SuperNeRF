@@ -173,8 +173,8 @@ class FashionNeRFDatasetTest(data.Dataset):
         im = self.transform(im_pil.convert('RGB'))
 
         # load parsing image
-        # self.cihp += f" {self.root} {self.person} {self.clothing} {filename}"
-        # cihp_err = os.system(self.cihp)
+        self.cihp += f" {self.root} {self.person} {self.clothing} {filename}"
+        cihp_err = os.system(self.cihp)
 
         if 1 == 0:
             print("FATAL: CIHP command failed")
@@ -221,31 +221,31 @@ class FashionNeRFDatasetTest(data.Dataset):
                 parse_onehot[0] += parse_map[label] * i
 
         # load pose points
-        # self.openpose += f" {self.root} {self.person} {self.clothing} {filename}"
-        # openpose_err = os.system(self.openpose)
-        if 1 == 0:
+        self.openpose += f" {self.root} {self.person} {self.clothing} {filename}"
+        openpose_err = os.system(self.openpose)
+        if openpose_err:
             print("FATAL: Openpose command failed")
             sys.exit(1)
             # sys.exit(openpose_err)
-        else:
-            openpose_name = im_name.replace('image', 'openpose_img').replace('.jpg', '_rendered.png')
-            openpose_json = im_name.replace('image', 'openpose_img').replace('.jpg', '_rendered.png')
-            if os.path.isfile(osp.join(self.data_path, openpose_name)):
-                # parse_name = im_name.replace('image', 'cihp').replace('.jpg', '.png')  # VITON
-                pose_map = Image.open(osp.join(self.data_path, openpose_name))
-                pose_map = transforms.Resize(self.fine_width, interpolation=2)(pose_map)
-                pose_map = self.transform(pose_map)  # [-1,1]
+        # else:
+        #     openpose_name = im_name.replace('image', 'openpose_img').replace('.jpg', '_rendered.png')
+        #     openpose_json = im_name.replace('image', 'openpose_img').replace('.jpg', '_rendered.png')
+        #     if os.path.isfile(osp.join(self.data_path, openpose_name)):
+        #         # parse_name = im_name.replace('image', 'cihp').replace('.jpg', '.png')  # VITON
+        #         pose_map = Image.open(osp.join(self.data_path, openpose_name))
+        #         pose_map = transforms.Resize(self.fine_width, interpolation=2)(pose_map)
+        #         pose_map = self.transform(pose_map)  # [-1,1]
 
-                pose_name = im_name.replace('image', 'openpose_json').replace('.jpg',
-                                                                              '_keypoints.json')  # VITON
-                with open(osp.join(self.data_path, pose_name), 'r') as f:
-                    pose_label = json.load(f)
-                    pose_data = pose_label['people'][0]['pose_keypoints_2d']
-                    pose_data = np.array(pose_data)
-                    pose_data = pose_data.reshape((-1, 3))[:, :2]
-            else:
-                print("FATAL: Could not save Openpose generation")
-                sys.exit(1)
+        #         pose_name = im_name.replace('image', 'openpose_json').replace('.jpg',
+        #                                                                       '_keypoints.json')  # VITON
+        #         with open(osp.join(self.data_path, pose_name), 'r') as f:
+        #             pose_label = json.load(f)
+        #             pose_data = pose_label['people'][0]['pose_keypoints_2d']
+        #             pose_data = np.array(pose_data)
+        #             pose_data = pose_data.reshape((-1, 3))[:, :2]
+        #     else:
+        #         print("FATAL: Could not save Openpose generation")
+        #         sys.exit(1)
 
 
 

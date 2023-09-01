@@ -33,6 +33,7 @@ def load_checkpoint_G(model, checkpoint_path,opt):
     if opt.cuda :
         model.cuda()
 
+os.chdir('inference_pipeline')
 opt = get_opt()
 root_dir = "data/rail/temp"
 path = f"{root_dir}/{opt.person}_{opt.clothing}/image"
