@@ -55,11 +55,13 @@ def get_opt():
     return opt
 
 # --root_dir data/rail/temp --person julian --clothing gray_long_sleeve --filename julian_gray_long_sleeve_27.jpg
-
+# import debugpy
+# debugpy.listen(5678)
+# debugpy.wait_for_client()
 opt = get_opt()
 person = f"{opt.person}_{opt.clothing}"
 path = f"{opt.root_dir}/{opt.person}_{opt.clothing}/image" # directory
-output_path = f"{opt.root_dir}/{opt.person}_{opt.clothing}/image-parse-agnostic" # directory
+output_path = f"{opt.root_dir}/{opt.person}_{opt.clothing}/image-parse-agnostic-v3.2" # directory
 image_file = f"{path}/{opt.filename}" # Existing filename
 output_filename = f"{output_path}/{opt.filename}".replace(".jpg",".png")
 print(opt)
@@ -84,7 +86,7 @@ except IndexError:
     print(pose_name)
     sys.exit()
 
-parse_name = image_file.replace('image','cihp').replace('.jpg', '.png')
+parse_name = image_file.replace('image','image-parse-v3').replace('.jpg', '.png')
 im_parse = Image.open(parse_name)
 agnostic = get_im_parse_agnostic(im_parse, pose_data)
 agnostic.save(output_filename)

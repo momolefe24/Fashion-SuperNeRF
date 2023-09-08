@@ -161,7 +161,7 @@ class ConditionGenerator(nn.Module):
 def make_grid(N, iH, iW,opt):
     grid_x = torch.linspace(-1.0, 1.0, iW).view(1, 1, iW, 1).expand(N, iH, -1, -1)
     grid_y = torch.linspace(-1.0, 1.0, iH).view(1, iH, 1, 1).expand(N, -1, iW, -1)
-    if eval(opt.cuda):
+    if opt.cuda:
         grid = torch.cat([grid_x, grid_y], 3).cuda()
     else:
         grid = torch.cat([grid_x, grid_y], 3)
@@ -235,8 +235,7 @@ class VGGLoss(nn.Module):
     def __init__(self, opt,layids = None):
         super(VGGLoss, self).__init__()
         self.vgg = Vgg19()
-        if eval(opt.cuda):
-            self.vgg.cuda()
+        self.vgg.cuda()
         self.criterion = nn.L1Loss()
         self.weights = [1.0/32, 1.0/16, 1.0/8, 1.0/4, 1.0]
         self.layids = layids
@@ -416,13 +415,11 @@ def save_checkpoint(model, save_path,opt):
     if opt.cuda:
         model.cuda()
 
-def load_checkpoint(model, checkpoint_path,opt):
+def load_checkpoint(model, checkpoint_path):
     if not os.path.exists(checkpoint_path):
         print('no checkpoint')
         raise
     log = model.load_state_dict(torch.load(checkpoint_path), strict=False)
-    if opt.cuda:
-        model.cuda()
 
 
 def weights_init(m):

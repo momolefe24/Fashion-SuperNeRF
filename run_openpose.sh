@@ -11,14 +11,14 @@ echo "clothing: ${clothing}"
 echo "filename: ${filename}"
 
 cd /home/mo/Playground/Artificial\ Intelligence/Computer\ Vision/openpose/
-# ./build/examples/openpose/openpose.bin --image_dir $person --hand --write_json "${person}_json" --write_images "${person}_output" --disable_blending --display 0
+./build/examples/openpose/openpose.bin --image_dir $person --hand --write_json "${person}_json" --write_images "${person}_output" --disable_blending --display 0
 png_filename=${filename//.jpg/_rendered.png}
 json_filename=${filename//.jpg/_keypoints.json}
 output_png="${person}_output/${png_filename}"
 output_json="${person}_json/${json_filename}"
 openpose_img_save_dir="$mscluster_path/$data_path/${person}_${clothing}/openpose_img"
 openpose_json_save_dir="$mscluster_path/$data_path/${person}_${clothing}/openpose_json"
-# rsync $output_png mscluster:~/"${mscluster_path}/$person_$clothing/"
+rsync $output_png mscluster:~/"${mscluster_path}/$person_$clothing/"
 echo "Openpose JSON: $openpose_json_save_dir"
 echo "Output: ${output_png}"
 

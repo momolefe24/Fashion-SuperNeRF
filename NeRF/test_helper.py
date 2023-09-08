@@ -123,7 +123,7 @@ def create_nerf(args):
     start = 0
 
     """ Come back to fix this to ensure we can load the model"""
-    ckpt = torch.load(args.nerf_checkpoint)
+    ckpt = torch.load(args.nerf_load_checkpoint)
     start = ckpt['global_step']
     optimizer.load_state_dict(ckpt['optimizer_state_dict'])
     model.load_state_dict(ckpt['network_fn_state_dict'])

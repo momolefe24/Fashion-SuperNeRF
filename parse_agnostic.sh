@@ -1,7 +1,7 @@
 #!/bin/bash
 args=("$@")
 shift 4
-source /home/molefe/miniconda3/bin/activate
+source /home-mscluster/mmolefe/miniconda3/bin/activate
 root_dir="${args[0]}"
 person="${args[1]}"
 clothing="${args[2]}"
@@ -10,7 +10,7 @@ echo "root_dir: ${root_dir}"
 echo "person: ${person}"
 echo "clothing: ${clothing}"
 echo "filename: ${filename}"
-conda activate NeRF2
+conda activate NeRF
 conda env list
 python3 get_parse_agnostic.py --root_dir ${root_dir} --person ${person} --clothing ${clothing} --filename ${filename}
 

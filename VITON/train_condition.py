@@ -2,16 +2,17 @@ import torch
 import torch.nn as nn
 import yaml
 from torchvision.utils import make_grid
-from networks import make_grid as mkgrid
+from VITON.networks import make_grid as mkgrid
 
 import argparse
 import os
 import time
-from cp_dataset import CPDataset, CPDatasetTest, CPDataLoader
-from networks import ConditionGenerator, VGGLoss, GANLoss, load_checkpoint, save_checkpoint, define_D
+from dataset import FashionDataLoader, FashionNeRFDataset
+from VITON.cp_dataset import CPDatasetTest, CPDataLoader
+from VITON.networks import ConditionGenerator, VGGLoss, GANLoss, load_checkpoint, save_checkpoint, define_D
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
-from utils import *
+from VITON.utils import *
 from torch.utils.data import Subset
 import matplotlib.pyplot as plt
 
@@ -46,98 +47,19 @@ def remove_overlap(seg_out, warped_cm):
     warped_cm = warped_cm - (torch.cat([seg_out[:, 1:3, :, :], seg_out[:, 5:, :, :]], dim=1)).sum(dim=1, keepdim=True) * warped_cm
     return warped_cm
 
-def get_opt():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("--name", default="RAIL_Transfer_Learning_experiment_1")
-    parser.add_argument("--gpu_ids", default="")
-    parser.add_argument('-j', '--workers', type=int, default=4)
-    parser.add_argument('-b', '--batch-size', type=int, default=8)
-    parser.add_argument('--fp16', action='store_true', help='use amp')
-    parser.add_argument("--dataroot", default="./data/rail")
-    parser.add_argument("--datamode", default="train")
-    parser.add_argument("--data_list", default="train_pairs.txt")
-    parser.add_argument("--fine_width", type=int, default=192)
-    parser.add_argument("--fine_height", type=int, default=256)
-
-    parser.add_argument('--tensorboard_dir', type=str, default='tensorboard', help='save tensorboard infos')
-    parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='save checkpoint infos')
-    parser.add_argument('--tocg_checkpoint', type=str, default='', help='tocg checkpoint')
-    # parser.add_argument('--tocg_checkpoint', type=str, default='checkpoints/VITON/Original Virtual Try-On/tocg_step_120000.pth', help='tocg checkpoint')
-
-    parser.add_argument("--tensorboard_count", type=int, default=100)
-    parser.add_argument("--display_count", type=int, default=100)
-    parser.add_argument("--save_count", type=int, default=10000)
-    parser.add_argument("--load_step", type=int, default=0)
-    parser.add_argument("--keep_step", type=int, default=300000)
-    parser.add_argument("--shuffle", action='store_true', help='shuffle input data')
-    parser.add_argument("--semantic_nc", type=int, default=13)
-    parser.add_argument("--output_nc", type=int, default=13)
-    
-    # network
-    parser.add_argument("--warp_feature", choices=['encoder', 'T1'], default="T1")
-    parser.add_argument("--out_layer", choices=['relu', 'conv'], default="relu")
-    parser.add_argument('--Ddownx2', action='store_true', help="Downsample D's input to increase the receptive field")  
-    parser.add_argument('--Ddropout', action='store_true', help="Apply dropout to D")
-    parser.add_argument('--num_D', type=int, default=2, help='Generator ngf')
-    # Cuda availability
-    parser.add_argument('--cuda',default=False, help='cuda or cpu')
-    # training
-    parser.add_argument("--G_D_seperate", action='store_true')
-    parser.add_argument("--no_GAN_loss", action='store_true')
-    parser.add_argument("--lasttvonly", action='store_true')
-    parser.add_argument("--interflowloss", action='store_true', help="Intermediate flow loss")
-    parser.add_argument("--clothmask_composition", type=str, choices=['no_composition', 'detach', 'warp_grad'], default='warp_grad')
-    parser.add_argument('--edgeawaretv', type=str, choices=['no_edge', 'last_only', 'weighted'], default="no_edge", help="Edge aware TV loss")
-    parser.add_argument('--add_lasttv', action='store_true')
-    
-    # test visualize
-    parser.add_argument("--no_test_visualize", action='store_true')    
-    parser.add_argument("--num_test_visualize", type=int, default=3)
-    parser.add_argument("--test_datasetting", default="unpaired")
-    parser.add_argument("--test_dataroot", default="./data/rail")
-    parser.add_argument("--test_data_list", default="test_pairs.txt")
-    
-
-    # Hyper-parameters
-    parser.add_argument('--G_lr', type=float, default=0.0002, help='Generator initial learning rate for adam')
-    parser.add_argument('--D_lr', type=float, default=0.0002, help='Discriminator initial learning rate for adam')
-    parser.add_argument('--CElamda', type=float, default=10, help='initial learning rate for adam')
-    parser.add_argument('--GANlambda', type=float, default=1)
-    parser.add_argument('--tvlambda', type=float, default=2)
-    parser.add_argument('--upsample', type=str, default='bilinear', choices=['nearest', 'bilinear'])
-    parser.add_argument('--val_count', type=int, default='1000')
-    parser.add_argument('--spectral', action='store_true', help="Apply spectral normalization to D")
-    parser.add_argument('--occlusion', action='store_true', help="Occlusion handling")
-
-    ''' Experiment details'''
-    parser.add_argument("--experiment_research_question", default="Can we synthesize a novel view fashion try-on to recreate a smart mirror using AI, instead of AR")
-    parser.add_argument("--experiment_node", default="biggpu")
-    parser.add_argument("--experiment_gpu", default="3090")
-    parser.add_argument("--experiment_change_1", default="Tried with occlusion")
-    parser.add_argument("--experiment_insights", default='Buttoned shirts perform badly as a result of collars, and they are harder to deform.')
-
-
-    opt = parser.parse_args()
-    return opt
-
-
-def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
-    # Model
-    if eval(opt.cuda):
-        tocg.cuda()
+def train_model(opt, train_loader, test_loader, validation_loader, tocg_curve_writer,tocg_images_writer, tocg, D):
+    tocg.cuda()
+    D.cuda()
     tocg.train()
-    if eval(opt.cuda):
-        D.cuda()
     D.train()
 
     # criterion
     criterionL1 = nn.L1Loss()
     criterionVGG = VGGLoss(opt)
-    if opt.fp16:
+    if opt.tocg_fp16:
         criterionGAN = GANLoss(use_lsgan=True, tensor=torch.cuda.HalfTensor)
     else :
-        if eval(opt.cuda):
+        if opt.cuda:
             criterionGAN = GANLoss(use_lsgan=True, tensor=torch.cuda.FloatTensor if opt.gpu_ids else torch.Tensor)
         else:
             criterionGAN = GANLoss(use_lsgan=True, tensor=torch.Tensor)
@@ -151,34 +73,19 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
         iter_start_time = time.time()
         inputs = train_loader.next_batch()
 
-        if eval(opt.cuda):
-            # input1
-            c_paired = inputs['cloth']['paired'].cuda()
-            cm_paired = inputs['cloth_mask']['paired'].cuda()
-            cm_paired = torch.FloatTensor((cm_paired.detach().cpu().numpy() > 0.5).astype(np.float32)).cuda()
-            # input2
-            parse_agnostic = inputs['parse_agnostic'].cuda()
-            densepose = inputs['densepose'].cuda()
-            openpose = inputs['pose'].cuda()
-            # GT
-            label_onehot = inputs['parse_onehot'].cuda()  # CE
-            label = inputs['parse'].cuda()  # GAN loss
-            parse_cloth_mask = inputs['pcm'].cuda()  # L1
-            im_c = inputs['parse_cloth'].cuda()  # VGG
-        else:
-            # input1
-            c_paired = inputs['cloth']['paired']
-            cm_paired = inputs['cloth_mask']['paired']
-            cm_paired = torch.FloatTensor((cm_paired.detach().cpu().numpy() > 0.5).astype(np.float32))
-            # input2
-            parse_agnostic = inputs['parse_agnostic']
-            densepose = inputs['densepose']
-            openpose = inputs['pose']
-            # GT
-            label_onehot = inputs['parse_onehot']  # CE
-            label = inputs['parse']  # GAN loss
-            parse_cloth_mask = inputs['pcm']  # L1
-            im_c = inputs['parse_cloth']  # VGG
+        # input1
+        c_paired = inputs['cloth']['paired'].cuda()
+        cm_paired = inputs['cloth_mask']['paired'].cuda()
+        cm_paired = torch.FloatTensor((cm_paired.detach().cpu().numpy() > 0.5).astype(np.float32)).cuda()
+        # input2
+        parse_agnostic = inputs['parse_agnostic'].cuda()
+        densepose = inputs['densepose'].cuda()
+        openpose = inputs['pose'].cuda()
+        # GT
+        label_onehot = inputs['parse_onehot'].cuda()  # CE
+        label = inputs['parse'].cuda()  # GAN loss
+        parse_cloth_mask = inputs['pcm'].cuda()  # L1
+        im_c = inputs['parse_cloth'].cuda()  # VGG
         # visualization
         im = inputs['image']
 
@@ -189,15 +96,7 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
         # forward
         flow_list, fake_segmap, warped_cloth_paired, warped_clothmask_paired = tocg(opt, input1, input2)
 
-        # to = lambda inputs, name, i: inputs[name][i].permute(1, 2, 0).cpu().numpy()[:, :, ::-1]  # to(inputs, 'cloth',0)
-        # to2 = lambda inputs, name1, name2, i: inputs[name1][name2][i].permute(1, 2, 0).cpu().numpy()[:, :,
-        #                                       ::-1]  # to2(inputs, 'cloth','paired',0)
-        # to3 = lambda inputs, i: inputs[i].permute(1, 2, 0).detach().cpu().numpy()[:, :, ::-1]
-        # warped cloth mask one hot 
-        if eval(opt.cuda):
-            warped_cm_onehot = torch.FloatTensor((warped_clothmask_paired.detach().cpu().numpy() > 0.5).astype(np.float32)).cuda()
-        else:
-            warped_cm_onehot = torch.FloatTensor((warped_clothmask_paired.detach().cpu().numpy() > 0.5).astype(np.float32))
+        warped_cm_onehot = torch.FloatTensor((warped_clothmask_paired.detach().cpu().numpy() > 0.5).astype(np.float32)).cuda()
         # fake segmap cloth channel * warped clothmask
         if opt.clothmask_composition != 'no_composition':
             if opt.clothmask_composition == 'detach':
@@ -262,7 +161,7 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
                     y_tv = y_tv.mean() / (2 ** (4-i))
                     x_tv = x_tv.mean() / (2 ** (4-i))
                     loss_tv = loss_tv + y_tv + x_tv
-            
+
             if opt.add_lasttv:
                 for flow in flow_list[-1:]:
                     y_tv = torch.abs(flow[:, 1:, :, :] - flow[:, :-1, :, :]).mean()
@@ -349,13 +248,13 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
                 loss_D.backward()
                 optimizer_D.step()
         # Vaildation
-        if (step + 1) % opt.val_count == 0:
+        if (step + 1) % 1 == 0:
             tocg.eval()
             iou_list = []
             with torch.no_grad():
-                for cnt in range(2000//opt.batch_size):
-                    inputs = val_loader.next_batch()
-                    if eval(opt.cuda):
+                for cnt in range(20//opt.viton_batch_size):
+                    inputs = validation_loader.next_batch()
+                    if opt.cuda:
                         # input1
                         c_paired = inputs['cloth']['paired'].cuda()
                         cm_paired = inputs['cloth_mask']['paired'].cuda()
@@ -409,59 +308,43 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
                     iou_list.append(iou.item())
 
             tocg.train()
-            board.add_scalar('val/iou', np.mean(iou_list), step + 1)
+            tocg_curve_writer.add_scalar('val/iou', np.mean(iou_list), step + 1)
         
         # tensorboard
-        if (step + 1) % opt.tensorboard_count == 0:
+        if (step + 1) % 1 == 0:
             # loss G
-            board.add_scalar('Loss/G', loss_G.item(), step + 1)
-            board.add_scalar('Loss/G/l1_cloth', loss_l1_cloth.item(), step + 1)
-            board.add_scalar('Loss/G/vgg', loss_vgg.item(), step + 1)
-            board.add_scalar('Loss/G/tv', loss_tv.item(), step + 1)
-            board.add_scalar('Loss/G/CE', CE_loss.item(), step + 1)
+            tocg_curve_writer.add_scalar('Loss/G', loss_G.item(), step + 1)
+            tocg_curve_writer.add_scalar('Loss/G/l1_cloth', loss_l1_cloth.item(), step + 1)
+            tocg_curve_writer.add_scalar('Loss/G/vgg', loss_vgg.item(), step + 1)
+            tocg_curve_writer.add_scalar('Loss/G/tv', loss_tv.item(), step + 1)
+            tocg_curve_writer.add_scalar('Loss/G/CE', CE_loss.item(), step + 1)
             if not opt.no_GAN_loss:
-                board.add_scalar('Loss/G/GAN', loss_G_GAN.item(), step + 1)
+                tocg_curve_writer.add_scalar('Loss/G/GAN', loss_G_GAN.item(), step + 1)
                 # loss D
-                board.add_scalar('Loss/D', loss_D.item(), step + 1)
-                board.add_scalar('Loss/D/pred_real', loss_D_real.item(), step + 1)
-                board.add_scalar('Loss/D/pred_fake', loss_D_fake.item(), step + 1)
+                tocg_curve_writer.add_scalar('Loss/D', loss_D.item(), step + 1)
+                tocg_curve_writer.add_scalar('Loss/D/pred_real', loss_D_real.item(), step + 1)
+                tocg_curve_writer.add_scalar('Loss/D/pred_fake', loss_D_fake.item(), step + 1)
             
             grid = make_grid([(c_paired[0].cpu() / 2 + 0.5), (cm_paired[0].cpu()).expand(3, -1, -1), visualize_segmap(parse_agnostic.cpu()), ((densepose.cpu()[0]+1)/2),
                               (im_c[0].cpu() / 2 + 0.5), parse_cloth_mask[0].cpu().expand(3, -1, -1), (warped_cloth_paired[0].cpu().detach() / 2 + 0.5), (warped_cm_onehot[0].cpu().detach()).expand(3, -1, -1),
                               visualize_segmap(label.cpu()), visualize_segmap(fake_segmap.cpu()), (im[0]/2 +0.5), (misalign[0].cpu().detach()).expand(3, -1, -1)],
                                 nrow=4)
-            board.add_images('train_images', grid.unsqueeze(0), step + 1)
+            tocg_images_writer.add_images('train_images', grid.unsqueeze(0), step + 1)
             
             if not opt.no_test_visualize:
                 inputs = test_loader.next_batch()
-                if eval(opt.cuda):
-                    # input1
-                    c_paired = inputs['cloth'][opt.test_datasetting].cuda()
-                    cm_paired = inputs['cloth_mask'][opt.test_datasetting].cuda()
-                    cm_paired = torch.FloatTensor((cm_paired.detach().cpu().numpy() > 0.5).astype(np.float32)).cuda()
-                    # input2
-                    parse_agnostic = inputs['parse_agnostic'].cuda()
-                    densepose = inputs['densepose'].cuda()
-                    openpose = inputs['pose'].cuda()
-                    # GT
-                    label_onehot = inputs['parse_onehot'].cuda()  # CE
-                    label = inputs['parse'].cuda()  # GAN loss
-                    parse_cloth_mask = inputs['pcm'].cuda()  # L1
-                    im_c = inputs['parse_cloth'].cuda()  # VGG
-                else:
-                    # input1
-                    c_paired = inputs['cloth'][opt.test_datasetting]
-                    cm_paired = inputs['cloth_mask'][opt.test_datasetting]
-                    cm_paired = torch.FloatTensor((cm_paired.detach().cpu().numpy() > 0.5).astype(np.float32))
-                    # input2
-                    parse_agnostic = inputs['parse_agnostic']
-                    densepose = inputs['densepose']
-                    openpose = inputs['pose']
-                    # GT
-                    label_onehot = inputs['parse_onehot']  # CE
-                    label = inputs['parse']  # GAN loss
-                    parse_cloth_mask = inputs['pcm']  # L1
-                    im_c = inputs['parse_cloth']  # VGG
+                c_paired = inputs['cloth'][opt.test_datasetting].cuda()
+                cm_paired = inputs['cloth_mask'][opt.test_datasetting].cuda()
+                cm_paired = torch.FloatTensor((cm_paired.detach().cpu().numpy() > 0.5).astype(np.float32)).cuda()
+                # input2
+                parse_agnostic = inputs['parse_agnostic'].cuda()
+                densepose = inputs['densepose'].cuda()
+                openpose = inputs['pose'].cuda()
+                # GT
+                label_onehot = inputs['parse_onehot'].cuda()  # CE
+                label = inputs['parse'].cuda()  # GAN loss
+                parse_cloth_mask = inputs['pcm'].cuda()  # L1
+                im_c = inputs['parse_cloth'].cuda()  # VGG
                 # visualization
                 im = inputs['image']
 
@@ -473,10 +356,8 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
 
                     # forward
                     flow_list, fake_segmap, warped_cloth_paired, warped_clothmask_paired = tocg(opt, input1, input2)
-                    if eval(opt.cuda):
-                        warped_cm_onehot = torch.FloatTensor((warped_clothmask_paired.detach().cpu().numpy() > 0.5).astype(np.float32)).cuda()
-                    else:
-                        warped_cm_onehot = torch.FloatTensor((warped_clothmask_paired.detach().cpu().numpy() > 0.5).astype(np.float32))
+                    warped_cm_onehot = torch.FloatTensor(
+                        (warped_clothmask_paired.detach().cpu().numpy() > 0.5).astype(np.float32)).cuda()
                     if opt.clothmask_composition != 'no_composition':
                         if opt.clothmask_composition == 'detach':
                             cloth_mask = torch.ones_like(fake_segmap)
@@ -501,68 +382,55 @@ def train(opt, train_loader, test_loader, val_loader, board, tocg, D):
                                     (im_c[i].cpu() / 2 + 0.5), parse_cloth_mask[i].cpu().expand(3, -1, -1), (warped_cloth_paired[i].cpu().detach() / 2 + 0.5), (warped_cm_onehot[i].cpu().detach()).expand(3, -1, -1),
                                     visualize_segmap(label.cpu(), batch=i), visualize_segmap(fake_segmap.cpu(), batch=i), (im[i]/2 +0.5), (misalign[i].cpu().detach()).expand(3, -1, -1)],
                                         nrow=4)
-                    board.add_images(f'test_images/{i}', grid.unsqueeze(0), step + 1)
+                    tocg_images_writer.add_images(f'test_images/{i}', grid.unsqueeze(0), step + 1)
                 tocg.train()
         
         # display
-        if (step + 1) % opt.display_count == 0:
+        if (step + 1) % 1 == 0:
             t = time.time() - iter_start_time
             if not opt.no_GAN_loss:
                 print("step: %8d, time: %.3f\nloss G: %.4f, L1_cloth loss: %.4f, VGG loss: %.4f, TV loss: %.4f CE: %.4f, G GAN: %.4f\nloss D: %.4f, D real: %.4f, D fake: %.4f"
                     % (step + 1, t, loss_G.item(), loss_l1_cloth.item(), loss_vgg.item(), loss_tv.item(), CE_loss.item(), loss_G_GAN.item(), loss_D.item(), loss_D_real.item(), loss_D_fake.item()), flush=True)
 
         # save
-        if (step + 1) % opt.save_count == 0:
-            save_checkpoint(tocg, os.path.join(opt.checkpoint_dir, opt.name, 'tocg_step_%06d.pth' % (step + 1)),opt)
-            save_checkpoint(D, os.path.join(opt.checkpoint_dir, opt.name, 'D_step_%06d.pth' % (step + 1)),opt)
+        if (step + 1) % 1 == 0:
+            save_checkpoint(tocg,opt.tocg_save_step_checkpoint % (step + 1), opt)
+            save_checkpoint(D,opt.tocg_discriminator_save_step_checkpoint % (step + 1), opt)
 
-def main():
-    opt = get_opt()
-    print(opt)
+def train_condition_generator(train_dataset, opt):
     print("Start to train %s!" % opt.name)
-    # os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu_ids
-    # create train dataset & loader
-    train_dataset = CPDataset(opt)
-    train_loader = CPDataLoader(opt, train_dataset)
-    
-    # create test dataset & loader
-    test_loader = None
-    if not opt.no_test_visualize:
-        train_bsize = opt.batch_size
-        opt.batch_size = opt.num_test_visualize
-        opt.dataroot = opt.test_dataroot
-        opt.datamode = 'test'
-        opt.data_list = opt.test_data_list
-        test_dataset = CPDatasetTest(opt)
-        opt.batch_size = train_bsize
-        val_dataset = Subset(test_dataset, np.arange(50))
-        test_loader = CPDataLoader(opt, test_dataset)
-        val_loader = CPDataLoader(opt, val_dataset)
-    # visualization
-    if not os.path.exists(opt.tensorboard_dir):
-        os.makedirs(opt.tensorboard_dir)
-    board = SummaryWriter(log_dir=os.path.join(opt.tensorboard_dir, opt.name))
-    with open(f'{os.path.join(opt.tensorboard_dir, opt.name)}/experiment.yml', 'w') as outfile:
+    tocg_curve_writer = SummaryWriter(f"{opt.tocg_writer}/curves")
+    tocg_image_writer = SummaryWriter(f"{opt.tocg_writer}/images")
+    train_loader = FashionDataLoader(train_dataset, opt.viton_batch_size, opt.viton_workers, True)
+
+    test_dataset = FashionNeRFDataset(opt, viton=True, mode='test', model='viton')
+    test_loader = FashionDataLoader(test_dataset, opt.num_test_visualize, 1, False)
+    validation_dataset = Subset(test_dataset, np.arange(50))
+    validation_loader = FashionDataLoader(validation_dataset, opt.num_test_visualize, opt.viton_workers, False)
+    if not os.path.exists(opt.tocg_writer):
+        os.makedirs(opt.tocg_writer)
+    if not os.path.exists(os.path.join(opt.tocg_basedir, opt.tocg_name)):
+        os.makedirs(os.path.join(opt.tocg_basedir, opt.tocg_name))
+
+    with open(f'{os.path.join(opt.tocg_basedir, opt.tocg_name)}/experiment.yml', 'w') as outfile:
         yaml.dump(vars(opt), outfile, default_flow_style=False)
+
     # Model
     input1_nc = 4  # cloth + cloth-mask
     input2_nc = opt.semantic_nc + 3  # parse_agnostic + densepose
     tocg = ConditionGenerator(opt, input1_nc=4, input2_nc=input2_nc, output_nc=opt.output_nc, ngf=96, norm_layer=nn.BatchNorm2d)
-    D = define_D(input_nc=input1_nc + input2_nc + opt.output_nc, Ddownx2 = opt.Ddownx2, Ddropout = opt.Ddropout, n_layers_D=3, spectral = opt.spectral, num_D = opt.num_D)
-    
+    D = define_D(input_nc=input1_nc + input2_nc + opt.output_nc, Ddownx2 = opt.tocg_Ddownx2, Ddropout = opt.tocg_Ddropout, n_layers_D=3, spectral = opt.spectral, num_D = opt.tocg_num_D)
+
     # Load Checkpoint
     # if not opt.tocg_checkpoint == '' and os.path.exists(opt.tocg_checkpoint):
     #     load_checkpoint(tocg, opt.tocg_checkpoint, opt)
-    load_checkpoint(tocg, 'checkpoints/Rail_RT_No_Occlusion_1/tocg_step_280000.pth', opt)
+    load_checkpoint(tocg, opt.tocg_load_final_checkpoint)
 
     # Train
-    train(opt, train_loader, val_loader, test_loader, board, tocg, D)
+    train_model(opt, train_loader,test_loader, validation_loader, tocg_curve_writer, tocg_image_writer,tocg, D)
 
     # Save Checkpoint
     save_checkpoint(tocg, os.path.join(opt.checkpoint_dir, opt.name, 'tocg_final.pth'),opt)
     save_checkpoint(D, os.path.join(opt.checkpoint_dir, opt.name, 'D_final.pth'),opt)
     print("Finished training %s!" % opt.name)
 
-
-if __name__ == "__main__":
-    main()

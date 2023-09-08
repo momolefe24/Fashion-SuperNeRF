@@ -13,7 +13,7 @@ echo "filename: ${filename}"
 #./openpose.sh data/rail/temp julian gray_long_sleeve julian_gray_long_sleeve_27.jpg
 echo "${root_dir}/${folder_name}/${filename}"
 image_file="${root_dir}/${filename}"
-image_path="${root_dir}/${folder_name}/${filename}"
+image_path="${root_dir}/${folder_name}/image/${filename}"
 echo "image path: $image_path"
 rail_dir=/Playground/Artificial\ Intelligence/Computer\ Vision/openpose/${person}/
 echo "rail dir: $rail_dir"

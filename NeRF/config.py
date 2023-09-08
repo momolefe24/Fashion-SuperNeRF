@@ -2,7 +2,6 @@
 import os
 import yaml
 import argparse
-import logging
 import sys
 import imageio
 import json
@@ -27,11 +26,6 @@ from torch.utils.tensorboard import SummaryWriter
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-logging.basicConfig(
-format="%(asctime)s %(levelname)s %(message)s",
-level=logging.DEBUG,
-stream=sys.stdout,
-)
 
 def get_parser():
     """Get parser object."""
@@ -55,17 +49,17 @@ def get_parser():
     )
     return parser
 
-def setup_experiment_files(paths):
-    for path in paths:
-        path_ = os.path.join(experiment_facts['root_path'], path['root_path'] + "/{}".format(experiment_facts['type']))
-        # path_ += "/{}".format(yaml_filepath.split("/")[1]).replace(".yaml", "")
-        path_ += f"/experiment_0{experiment_facts['experiment_number']}_run_0{experiment_facts['run_number']}"
-        paths_.append(path_)
-        if not os.path.isdir(path_):
-            os.makedirs(path_)
-        path_yaml = path_ + "/{}".format("experiment.yaml")
-        with open(path_yaml, "w") as out:
-            yaml.dump(cfg, out)
+# def setup_experiment_files(paths):
+#     for path in paths:
+#         path_ = os.path.join(experiment_facts['root_path'], path['root_path'] + "/{}".format(experiment_facts['type']))
+#         # path_ += "/{}".format(yaml_filepath.split("/")[1]).replace(".yaml", "")
+#         path_ += f"/experiment_0{experiment_facts['experiment_number']}_run_0{experiment_facts['run_number']}"
+#         paths_.append(path_)
+#         if not os.path.isdir(path_):
+#             os.makedirs(path_)
+#         path_yaml = path_ + "/{}".format("experiment.yaml")
+#         with open(path_yaml, "w") as out:
+#             yaml.dump(cfg, out)
 
 
 def gradient_penalty(critic, real, fake, device):
@@ -106,46 +100,46 @@ def load_checkpoint(checkpoint_file, model, optimizer, lr):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
-paths_ = []
-# args = get_parser().parse_args()
-args = "experiments/experiment_01_run_01.yaml"
-#yaml_filepath = args.filename
-yaml_filepath = args
-with open(yaml_filepath, "r") as stream:
-    cfg = yaml.load(stream, Loader=yaml.FullLoader)
+# paths_ = []
+# # args = get_parser().parse_args()
+# args = "experiments/experiment_01_run_01.yaml"
+# #yaml_filepath = args.filename
+# yaml_filepath = args
+# with open(yaml_filepath, "r") as stream:
+#     cfg = yaml.load(stream, Loader=yaml.FullLoader)
 
-"""
-Facts
-"""
-experiment_facts = cfg['experiment_facts']
-checkpoint_facts = cfg['checkpoint_facts']
-embedding_facts = cfg['embedding_facts']
-results_facts = cfg['results_facts']
-summary_facts = results_facts['summary_facts']
-dataset_facts = cfg['dataset_facts']
-hyperparameter_facts = cfg['hyperparameter_facts']
-model_facts = cfg['model_facts']
+# """
+# Facts
+# """
+# experiment_facts = cfg['experiment_facts']
+# checkpoint_facts = cfg['checkpoint_facts']
+# embedding_facts = cfg['embedding_facts']
+# results_facts = cfg['results_facts']
+# summary_facts = results_facts['summary_facts']
+# dataset_facts = cfg['dataset_facts']
+# hyperparameter_facts = cfg['hyperparameter_facts']
+# model_facts = cfg['model_facts']
 
-paths = [results_facts, checkpoint_facts, summary_facts]
-setup_experiment_files(paths)
+# paths = [results_facts, checkpoint_facts, summary_facts]
+# setup_experiment_files(paths)
 
 
-"""
-CONFIGURATION FILES
-"""
-nerf_checkpoint = checkpoint_facts['nerf_checkpoints']
-nerf_results = results_facts['nerf_results']
-nerf_data = dataset_facts['nerf_data']
-nerf_embedder = embedding_facts['nerf_embedder']
-nerf_summary = summary_facts['nerf_summary']
-nerf_hyperparameters = hyperparameter_facts['nerf_hyperparameters']
-nerf_model = model_facts['nerf_model']
-# H, W = eval(nerf_data['image_shape'])
+# """
+# CONFIGURATION FILES
+# """
+# nerf_checkpoint = checkpoint_facts['nerf_checkpoints']
+# nerf_results = results_facts['nerf_results']
+# nerf_data = dataset_facts['nerf_data']
+# nerf_embedder = embedding_facts['nerf_embedder']
+# nerf_summary = summary_facts['nerf_summary']
+# nerf_hyperparameters = hyperparameter_facts['nerf_hyperparameters']
+# nerf_model = model_facts['nerf_model']
+# # H, W = eval(nerf_data['image_shape'])
 
 """TRANSFORMATIONS"""
 transform = A.Compose(
     [
-        A.Normalize(mean=list(eval(nerf_data['transforms']['mean'])), std=list(eval(nerf_data['transforms']['std']))),
+        A.Normalize(mean=(0,0,0), std=(1,1,1)),
         ToTensorV2(),
     ]
 )
@@ -155,4 +149,5 @@ depth_transform = A.Compose(
     [ ToTensorV2()]
 )
 
-device = experiment_facts['device']
+# device = experiment_facts['device']
+device = 'cuda'

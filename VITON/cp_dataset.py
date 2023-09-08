@@ -271,7 +271,6 @@ class CPDatasetTest(data.Dataset):
         self.fine_width = opt.fine_width
         self.semantic_nc = opt.semantic_nc
         self.data_path = osp.join(opt.dataroot, opt.datamode)
-        self.transforms_data = get_transforms_data(opt)
         self.transform = transforms.Compose([  \
                 transforms.ToTensor(),   \
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -295,7 +294,6 @@ class CPDatasetTest(data.Dataset):
 
     def __getitem__(self, index):
         im_name = self.im_names[index]
-        transform_matrix = get_transform_matrix(self.transforms_data, im_name)
         c_name = {}
         c = {}
         cm = {}

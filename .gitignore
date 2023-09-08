@@ -6,3 +6,5 @@ eval_models/
 detectron2/
 CIHP_PGN/checkpoint/
 CIHP_PGN/evaluation/Instance_part_val/
+results/
+logs/

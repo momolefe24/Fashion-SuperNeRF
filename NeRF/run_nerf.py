@@ -12,16 +12,15 @@ from tqdm import tqdm, trange
 
 import matplotlib.pyplot as plt
 
-from run_nerf_helpers import *
-from load_blender import load_blender_data
+from NeRF.run_nerf_helpers import *
+from NeRF.load_blender import load_blender_data
 
-from config import *
+from NeRF.config import *
 
 
 np.random.seed(0)
 DEBUG = False
 
-writer = SummaryWriter(paths_[-1])
 def batchify(fn, chunk):
     """Constructs a version of 'fn' that applies to smaller batches.
     """
@@ -90,6 +89,7 @@ def render(H, W, K, chunk=1024*32, rays=None, c2w=None, ndc=True,
       acc_map: [batch_size]. Accumulated opacity (alpha) along a ray.
       extras: dict with everything returned by render_rays().
     """
+    H,W = int(H), int(W)
     if c2w is not None:
         # special case to render full image
         rays_o, rays_d = get_rays(H, W, K, c2w)
@@ -112,10 +112,13 @@ def render(H, W, K, chunk=1024*32, rays=None, c2w=None, ndc=True,
         rays_o, rays_d = ndc_rays(H, W, K[0][0], 1., rays_o, rays_d)
 
     # Create ray batch
-    rays_o = torch.reshape(rays_o, [-1,3]).float()
-    rays_d = torch.reshape(rays_d, [-1,3]).float()
+    rays_o = torch.reshape(rays_o, [-1,3]).float().to(device)
+    rays_d = torch.reshape(rays_d, [-1,3]).float().to(device)
 
     near, far = near * torch.ones_like(rays_d[...,:1]), far * torch.ones_like(rays_d[...,:1])
+    near = near.to(device)
+    far = far.to(device)
+    viewdirs = viewdirs.to(device)
     rays = torch.cat([rays_o, rays_d, near, far], -1)
     if use_viewdirs:
         rays = torch.cat([rays, viewdirs], -1)
@@ -132,7 +135,7 @@ def render(H, W, K, chunk=1024*32, rays=None, c2w=None, ndc=True,
     return ret_list + [ret_dict]
 
 
-def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedir=None, render_factor=0, epoch=9):
+def render_path(render_poses, hwf, K, chunk, render_kwargs,writer, gt_imgs=None, savedir=None, render_factor=0, epoch=9):
 
     H, W, focal = hwf
 
@@ -185,72 +188,79 @@ def render_path(render_poses, hwf, K, chunk, render_kwargs, gt_imgs=None, savedi
     return rgbs, disps
 
 
-def create_nerf(args):
+def create_nerf(opt):
     """Instantiate NeRF's MLP model.
     """
-    embed_fn, input_ch = get_embedder(args.multires, args.i_embed)
+    embed_fn, input_ch = get_embedder(opt.nerf_multires, opt.nerf_i_embed)
 
     input_ch_views = 0
     embeddirs_fn = None
-    if args.use_viewdirs:
-        embeddirs_fn, input_ch_views = get_embedder(args.multires_views, args.i_embed)
-    output_ch = 5 if args.N_importance > 0 else 4
+    if opt.nerf_use_viewdirs:
+        embeddirs_fn, input_ch_views = get_embedder(opt.nerf_multires_views, opt.nerf_i_embed)
+    output_ch = 5 if opt.nerf_N_importance > 0 else 4
     skips = [4]
-    model = NeRF(D=args.netdepth, W=args.netwidth,
+    model = NeRF(D=opt.nerf_netdepth, W=opt.nerf_netwidth,
                  input_ch=input_ch, output_ch=output_ch, skips=skips,
-                 input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+                 input_ch_views=input_ch_views, use_viewdirs=opt.nerf_use_viewdirs).to(device)
     grad_vars = list(model.parameters())
 
     model_fine = None
-    if args.N_importance > 0:
-        model_fine = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
+    if opt.nerf_N_importance > 0:
+        model_fine = NeRF(D=opt.nerf_netdepth_fine, W=opt.nerf_netwidth_fine,
                           input_ch=input_ch, output_ch=output_ch, skips=skips,
-                          input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+                          input_ch_views=input_ch_views, use_viewdirs=opt.nerf_use_viewdirs).to(device)
         grad_vars += list(model_fine.parameters())
 
     network_query_fn = lambda inputs, viewdirs, network_fn : run_network(inputs, viewdirs, network_fn,
                                                                 embed_fn=embed_fn,
                                                                 embeddirs_fn=embeddirs_fn,
-                                                                netchunk=args.netchunk)
+                                                                netchunk=opt.nerf_netchunk)
 
     # Create optimizer
-    optimizer = torch.optim.Adam(params=grad_vars, lr=args.lrate, betas=(0.9, 0.999))
+    optimizer = torch.optim.Adam(params=grad_vars, lr=opt.nerf_lrate, betas=(0.9, 0.999))
 
     start = 0
-    basedir = args.basedir
-    expname = args.expname
+    basedir = opt.nerf_basedir
 
     ##########################
-
-    # Load checkpoints
-    if checkpoint_facts['load_checkpoint']:
-        ckpt_path = os.path.join(paths_[1], nerf_checkpoint['checkpoint_nerf'])
-        ckpt = torch.load(ckpt_path)
+    nerf_checkpoints = "checkpoints/orginal_nerf/experiment_02_run_03/NeRF.pth"
+    if os.path.isfile(nerf_checkpoints):
+        ckpt = torch.load(nerf_checkpoints)
         start = ckpt['global_step']
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
         model.load_state_dict(ckpt['network_fn_state_dict'])
         if model_fine is not None:
             model_fine.load_state_dict(ckpt['network_fine_state_dict'])
 
+    # Load checkpoints
+    # if checkpoint_facts['load_checkpoint']:
+    #     ckpt_path = os.path.join(paths_[1], nerf_checkpoint['checkpoint_nerf'])
+    #     ckpt = torch.load(ckpt_path)
+    #     start = ckpt['global_step']
+    #     optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+    #     model.load_state_dict(ckpt['network_fn_state_dict'])
+    #     if model_fine is not None:
+    #         model_fine.load_state_dict(ckpt['network_fine_state_dict'])
+
     ##########################
 
     render_kwargs_train = {
         'network_query_fn' : network_query_fn,
-        'perturb' : args.perturb,
-        'N_importance' : args.N_importance,
+        'perturb' : opt.nerf_perturb,
+        'N_importance' : opt.nerf_N_importance,
         'network_fine' : model_fine,
-        'N_samples' : args.N_samples,
+        'N_samples' : opt.nerf_N_samples,
         'network_fn' : model,
-        'use_viewdirs' : args.use_viewdirs,
-        'white_bkgd' : args.white_bkgd,
-        'raw_noise_std' : args.raw_noise_std,
+        'use_viewdirs' : opt.nerf_use_viewdirs,
+        'white_bkgd' : opt.nerf_white_bkgd,
+        'raw_noise_std' : opt.nerf_raw_noise_std,
     }
 
     # NDC only good for LLFF-style forward facing data
-    if args.dataset_type != 'llff' or args.no_ndc:
+    if opt.nerf_dataset_type != 'llff' or opt.nerf_no_ndc:
         print('Not ndc!')
         render_kwargs_train['ndc'] = False
-        render_kwargs_train['lindisp'] = args.lindisp
+        render_kwargs_train['lindisp'] = opt.nerf_lindisp
 
     render_kwargs_test = {k : render_kwargs_train[k] for k in render_kwargs_train}
     render_kwargs_test['perturb'] = False
@@ -539,63 +549,47 @@ def config_parser():
     return parser
 
 
-def train():
+def train(test_dataset, opt):
 
-    parser = config_parser()
-    args = parser.parse_args()
 
     # Load data
     K = None
+    nerf_curve_writer = SummaryWriter(f"{opt.nerf_writer}/curves")
+    nerf_image_writer = SummaryWriter(f"{opt.nerf_writer}/images")
+    images = [test_dataset.__getitem__(i)['image'] for i in range(24)]
+    images = np.array([tensor.permute(1,2,0).numpy() for tensor in images], np.float32)
 
-    if args.dataset_type == 'blender':
-        images, poses, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip)
-        print('Loaded blender', images.shape, render_poses.shape, hwf, args.datadir)
-        i_train, i_val, i_test = i_split
-
-        near = 2.
-        far = 6.
-
-        if args.white_bkgd:
-            images = images[...,:3]*images[...,-1:] + (1.-images[...,-1:])
-        else:
-            images = images[...,:3]
-    else:
-        print('Unknown dataset type', args.dataset_type, 'exiting')
-        return
+    poses = [test_dataset.__getitem__(i)['transform_matrix'] for i in range(24)]
+    poses = np.array([tensor.numpy() for tensor in poses], np.float32)
 
     # Cast intrinsics to right types
-    H, W, focal = hwf
-    H, W = int(H), int(W)
-    hwf = [H, W, focal]
-
-    if K is None:
-        K = np.array([
-            [focal, 0, 0.5*W],
-            [0, focal, 0.5*H],
-            [0, 0, 1]
-        ])
-
-    if args.render_test:
-        render_poses = np.array(poses[i_test])
+    # render_poses = test_dataset.render_poses[:24]
+    render_poses = test_dataset.render_poses[:2]
+    hwf = [int(test_dataset.H), int(test_dataset.W), test_dataset.focal]
+    H, W = int(test_dataset.H), int(test_dataset.W)
+    K = test_dataset.K
 
     # Create log dir and copy the config file
-    basedir = args.basedir
-    expname = args.expname
+    basedir = opt.nerf_basedir
+    expname = opt.person
     os.makedirs(os.path.join(basedir, expname), exist_ok=True)
-    f = os.path.join(basedir, expname, 'args.txt')
+    f = os.path.join(basedir, expname, 'config.txt')
+    config_person_file = f"{opt.person}_{opt.clothing}.txt"
+    config = os.path.join(opt.dataroot, "configs", config_person_file)
     with open(f, 'w') as file:
-        for arg in sorted(vars(args)):
-            attr = getattr(args, arg)
+        for arg in sorted(vars(opt)):
+            attr = getattr(opt, arg)
             file.write('{} = {}\n'.format(arg, attr))
-    if args.config is not None:
+    if config is not None:
         f = os.path.join(basedir, expname, 'config.txt')
         with open(f, 'w') as file:
-            file.write(open(args.config, 'r').read())
+            file.write(open(config, 'r').read())
 
     # Create nerf model
-    render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer = create_nerf(args)
+    render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer = create_nerf(opt)
     global_step = start
-
+    near = 2.
+    far = 6.
     bds_dict = {
         'near' : near,
         'far' : far,
@@ -607,29 +601,32 @@ def train():
     render_poses = torch.Tensor(render_poses).to(device)
 
     # Short circuit if only rendering out from trained model
-    if args.render_only:
+    if opt.nerf_render_only:
         print('RENDER ONLY')
         with torch.no_grad():
-            if args.render_test:
+            if opt.nerf_render_test:
                 # render_test switches to test poses
-                images = images[i_test]
+                images = images[:10]
             else:
                 # Default is smoother render_poses path
                 images = None
 
-            testsavedir = os.path.join(basedir, expname, 'renderonly_{}_{:06d}'.format('test' if args.render_test else 'path', start))
-            os.makedirs(testsavedir, exist_ok=True)
+            test_save_dir = os.path.join(opt.nerf_testing_images, opt.person)
+            os.makedirs(test_save_dir, exist_ok=True)
             print('test poses shape', render_poses.shape)
 
-            rgbs, _ = render_path(render_poses, hwf, K, args.chunk, render_kwargs_test, gt_imgs=images, savedir=testsavedir, render_factor=args.render_factor)
-            print('Done rendering', testsavedir)
-            imageio.mimwrite(os.path.join(testsavedir, 'video.mp4'), to8b(rgbs), fps=30, quality=8)
+            rgbs, _ = render_path(render_poses, hwf, K, opt.nerf_chunk, render_kwargs_test, gt_imgs=images, savedir=test_save_dir, render_factor=opt.nerf_render_factor)
+            print('Done rendering', test_save_dir)
+            imageio.mimwrite(os.path.join(test_save_dir, 'video.mp4'), to8b(rgbs), fps=30, quality=8)
 
             return
 
     # Prepare raybatch tensor if batching random rays
-    N_rand = args.N_rand
-    use_batching = not args.no_batching
+    N_rand = opt.nerf_N_rand
+    i_train = list(range(1,11))
+    i_valid = list(range(11,21))
+    i_test = list(range(1,2))
+    use_batching = not opt.nerf_no_batching
     if use_batching:
         # For random ray batching
         print('get rays')
@@ -637,7 +634,7 @@ def train():
         print('done, concats')
         rays_rgb = np.concatenate([rays, images[:,None]], 1) # [N, ro+rd+rgb, H, W, 3]
         rays_rgb = np.transpose(rays_rgb, [0,2,3,1,4]) # [N, H, W, ro+rd+rgb, 3]
-        rays_rgb = np.stack([rays_rgb[i] for i in i_train], 0) # train images only
+        rays_rgb = np.stack([rays_rgb[i] for i in list(range(1,11))], 0) # train images only
         rays_rgb = np.reshape(rays_rgb, [-1,3,3]) # [(N-1)*H*W, ro+rd+rgb, 3]
         rays_rgb = rays_rgb.astype(np.float32)
         print('shuffle rays')
@@ -655,10 +652,10 @@ def train():
 
 
     N_iters = 400000 + 1
-    print('Begin')
-    print('TRAIN views are', i_train)
-    print('TEST views are', i_test)
-    print('VAL views are', i_val)
+    # print('Begin')
+    # print('TRAIN views are', i_train)
+    # print('TEST views are', i_test)
+    # print('VAL views are', i_val)
 
     # Summary writers
     # writer = SummaryWriter(os.path.join(basedir, 'summaries', expname))
@@ -683,7 +680,7 @@ def train():
 
         else:
             # Random from one image
-            img_i = np.random.choice(i_train)
+            img_i = np.random.choice(list(range(1,20)))
             target = images[img_i]
             target = torch.Tensor(target).to(device)
             pose = poses[img_i, :3,:4]
@@ -691,16 +688,16 @@ def train():
             if N_rand is not None:
                 rays_o, rays_d = get_rays(H, W, K, torch.Tensor(pose))  # (H, W, 3), (H, W, 3)
 
-                if i < args.precrop_iters:
-                    dH = int(H//2 * args.precrop_frac)
-                    dW = int(W//2 * args.precrop_frac)
+                if i < opt.nerf_precrop_iters:
+                    dH = int(H//2 * opt.nerf_precrop_frac)
+                    dW = int(W//2 * opt.nerf_precrop_frac)
                     coords = torch.stack(
                         torch.meshgrid(
                             torch.linspace(H//2 - dH, H//2 + dH - 1, 2*dH), 
                             torch.linspace(W//2 - dW, W//2 + dW - 1, 2*dW)
                         ), -1)
                     if i == start:
-                        print(f"[Config] Center cropping of size {2*dH} x {2*dW} is enabled until iter {args.precrop_iters}")                
+                        print(f"[Config] Center cropping of size {2*dH} x {2*dW} is enabled until iter {opt.nerf_precrop_iters}")                
                 else:
                     coords = torch.stack(torch.meshgrid(torch.linspace(0, H-1, H), torch.linspace(0, W-1, W)), -1)  # (H, W, 2)
 
@@ -713,7 +710,7 @@ def train():
                 target_s = target[select_coords[:, 0], select_coords[:, 1]]  # (N_rand, 3)
 
         #####  Core optimization loop  #####
-        rgb, disp, acc, extras = render(H, W, K, chunk=args.chunk, rays=batch_rays,
+        rgb, disp, acc, extras = render(H, W, K, chunk=opt.nerf_chunk, rays=batch_rays,
                                                 verbose=i < 10, retraw=True,
                                                 **render_kwargs_train)
 
@@ -734,8 +731,8 @@ def train():
         # NOTE: IMPORTANT!
         ###   update learning rate   ###
         decay_rate = 0.1
-        decay_steps = args.lrate_decay * 1000
-        new_lrate = args.lrate * (decay_rate ** (global_step / decay_steps))
+        decay_steps = opt.nerf_lrate_decay * 1000
+        new_lrate = opt.nerf_lrate * (decay_rate ** (global_step / decay_steps))
         for param_group in optimizer.param_groups:
             param_group['lr'] = new_lrate
         ################################
@@ -743,82 +740,35 @@ def train():
         dt = time.time()-time0
 
 
-        if i%500 == 0:
+        if i%1 == 0:
             print("")
-            writer.add_scalar("NeRF", img_loss.item(), i)
-            writer.add_scalar("NeRF_Fine", img_loss0.item(), i)
-            writer.add_scalar("Multi-Task Loss", loss.item(), i)
-            testsavedir = os.path.join(basedir, expname, 'testset_{:06d}'.format(i))
-            os.makedirs(testsavedir, exist_ok=True)
+            nerf_curve_writer.add_scalar("NeRF", img_loss.item(), i)
+            nerf_curve_writer.add_scalar("NeRF_Fine", img_loss0.item(), i)
+            nerf_curve_writer.add_scalar("Multi-Task Loss", loss.item(), i)
+            train_save_dir = os.path.join(opt.nerf_training_images, opt.person)
+            os.makedirs(train_save_dir, exist_ok=True)
             print(f"Train stage: Neural Radiance Field "
                   f"Epoch[{i + 1:04d}/{N_iters:04d}] PSNR: {psnr.item()} "
                   f"NeRF: {img_loss.item():.6f} NeRF Fine: {img_loss0.item():.6f} "
                   f"Multi-Task Loss: {loss:.6f} .")
             with torch.no_grad():
-                render_path(torch.Tensor(poses[i_test]).to(device), hwf, K, args.chunk, render_kwargs_test, gt_imgs=images[i_test], savedir=testsavedir, epoch=global_step)
+                render_path(torch.Tensor(poses[i_test]).to(device), hwf, K, opt.nerf_chunk, render_kwargs_test,nerf_image_writer, gt_imgs=images[i_test], savedir=train_save_dir, epoch=global_step)
             print('Saved test set')
-            # path = os.path.join(basedir, expname, '{:06d}.tar'.format(i))
-            path = os.path.join(paths_[1], nerf_checkpoint['checkpoint_nerf'] )
+            os.makedirs(opt.nerf_save_checkpoint.replace("/NeRF.pth", ""), exist_ok=True)
             torch.save({
                 'global_step': global_step,
                 'network_fn_state_dict': render_kwargs_train['network_fn'].state_dict(),
                 'network_fine_state_dict': render_kwargs_train['network_fine'].state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-            }, path)
-
-
-    
-        # if i%args.i_print==0:
-        #     tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}")
-        """
-            print(expname, i, psnr.numpy(), loss.numpy(), global_step.numpy())
-            print('iter time {:.05f}'.format(dt))
-
-            with tf.contrib.summary.record_summaries_every_n_global_steps(args.i_print):
-                tf.contrib.summary.scalar('loss', loss)
-                tf.contrib.summary.scalar('psnr', psnr)
-                tf.contrib.summary.histogram('tran', trans)
-                if args.N_importance > 0:
-                    tf.contrib.summary.scalar('psnr0', psnr0)
-
-
-            if i%args.i_img==0:
-
-                # Log a rendered validation view to Tensorboard
-                img_i=np.random.choice(i_val)
-                target = images[img_i]
-                pose = poses[img_i, :3,:4]
-                with torch.no_grad():
-                    rgb, disp, acc, extras = render(H, W, focal, chunk=args.chunk, c2w=pose,
-                                                        **render_kwargs_test)
-
-                psnr = mse2psnr(img2mse(rgb, target))
-
-                with tf.contrib.summary.record_summaries_every_n_global_steps(args.i_img):
-
-                    tf.contrib.summary.image('rgb', to8b(rgb)[tf.newaxis])
-                    tf.contrib.summary.image('disp', disp[tf.newaxis,...,tf.newaxis])
-                    tf.contrib.summary.image('acc', acc[tf.newaxis,...,tf.newaxis])
-
-                    tf.contrib.summary.scalar('psnr_holdout', psnr)
-                    tf.contrib.summary.image('rgb_holdout', target[tf.newaxis])
-
-
-                if args.N_importance > 0:
-
-                    with tf.contrib.summary.record_summaries_every_n_global_steps(args.i_img):
-                        tf.contrib.summary.image('rgb0', to8b(extras['rgb0'])[tf.newaxis])
-                        tf.contrib.summary.image('disp0', extras['disp0'][tf.newaxis,...,tf.newaxis])
-                        tf.contrib.summary.image('z_std', extras['z_std'][tf.newaxis,...,tf.newaxis])
-        """
+            }, opt.nerf_save_checkpoint)
 
         global_step += 1
 
 
-if __name__=='__main__':
-    if device == "cuda:":
-        torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    else:
-        torch.set_default_tensor_type('torch.FloatTensor')
+# if __name__=='__main__':
+#     if device == "cuda:":
+#         torch.set_default_tensor_type('torch.cuda.FloatTensor')
+#     else:
+#         torch.set_default_tensor_type('torch.FloatTensor')
 
-    train()
+#     # train()

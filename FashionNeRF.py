@@ -1,7 +1,7 @@
 from utils import get_opt, get_transforms_data
 import torch
 import torch.nn as nn
-from dataset import FashionNeRFDatasetTest
+from dataset import FashionNeRFDataset
 import matplotlib.pyplot as plt
 import os
 """ ================== Data structure imports =================="""
@@ -9,17 +9,25 @@ from collections import OrderedDict
 
 """ ================== NeRF imports =================="""
 from NeRF.test_helper import render, create_nerf
+from NeRF.run_nerf import train
 """ ================== VITON imports =================="""
 from VITON.cp_dataset import CPDataset, CPDatasetTest, CPDataLoader
 from VITON.networks import ConditionGenerator, load_checkpoint, make_grid
 from VITON.network_generator import SPADEGenerator
+from VITON.train_condition import train_condition_generator
 from VITON.test_generator import test
 
+
+import numpy as np
 # ./cihp_pgn.sh data/rail/temp julian gray_long_sleeve julian_gray_long_sleeve_27.jpg
 # ./densepose.sh data/rail/temp julian gray_long_sleeve julian_gray_long_sleeve_27.jpg
 # ./openpose.sh data/rail/temp julian gray_long_sleeve julian_gray_long_sleeve_27.jpg
 # ./parse_agnostic.sh data/rail/temp julian gray_long_sleeve julian_gray_long_sleeve_27.jpg
-
+def probe(pose, H, W, K, num=0):
+	c2w = pose[:3, :4]
+	with torch.no_grad():
+		rgb, disp, acc, _ = render(H, W, K, chunk=opt.nerf_chunk, c2w=c2w, **render_kwargs_test)
+	return rgb
 
 
 def load_checkpoint_G(model, checkpoint_path,opt):
@@ -33,7 +41,7 @@ def load_checkpoint_G(model, checkpoint_path,opt):
     if opt.cuda :
         model.cuda()
 
-os.chdir('inference_pipeline')
+# os.chdir('inference_pipeline')
 opt = get_opt()
 root_dir = "data/rail/temp"
 path = f"{root_dir}/{opt.person}_{opt.clothing}/image"
@@ -63,12 +71,17 @@ bds_dict = {
 render_kwargs_test.update(bds_dict)
 save_image = lambda title, torch_img: plt.imsave(f"{title}.png", torch_img.cpu().numpy())
 #
-def probe(pose, H, W, K, num=0):
-	c2w = pose[:3, :4]
-	with torch.no_grad():
-		rgb, disp, acc, _ = render(H, W, K, chunk=opt.nerf_chunk, c2w=c2w, **render_kwargs_test)
-	return rgb
-test_dataset = FashionNeRFDatasetTest(opt)
-julian = test_dataset.__getitem__(0)
-probe(julian['transform_matrix'], int(julian['H']), int(julian['W']), julian['K'])
-# test(opt, test_loader, tocg, generator)
+
+
+
+def train_nerf():
+    nerf_dataset = FashionNeRFDataset(opt, viton=False)
+    train(nerf_dataset, opt) 
+
+def train_condition():
+    viton_dataset = FashionNeRFDataset(opt, viton=True, mode='train', model='viton')
+    train_condition_generator(viton_dataset, opt)
+
+
+train_condition()
+# train_nerf()
